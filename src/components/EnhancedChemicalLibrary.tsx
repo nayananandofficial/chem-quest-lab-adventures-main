@@ -281,7 +281,7 @@ export const EnhancedChemicalLibrary: React.FC<EnhancedChemicalLibraryProps> = (
           </div>
 
           {/* Chemical List */}
-          <ScrollArea className="h-64">
+          <ScrollArea className="h-40">
             <div className="space-y-2">
               {filteredChemicals.map(chemical => (
                 <div
@@ -330,7 +330,7 @@ export const EnhancedChemicalLibrary: React.FC<EnhancedChemicalLibraryProps> = (
 
           {/* Selected Chemical Details */}
           {selectedChemical && (
-            <Card className="border-primary/50">
+            <Card className="border-primary/50 ">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <div
