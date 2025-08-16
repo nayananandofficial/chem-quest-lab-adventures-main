@@ -149,14 +149,14 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
       )}
 
       {/* Equipment label with enhanced info */}
-      <Html position={[0, 1.2, 0]} center>
+      {/* <Html position={[0, 1.2, 0]} center>
         <div className="bg-black/80 text-white p-2 rounded text-xs min-w-32 text-center">
           <div className="font-bold">Beaker 250mL</div>
           <div>Contents: {contents.length}</div>
           <div>Temp: {temperature}°C</div>
           {isHeated && <div className="text-red-400">🔥 Heated</div>}
         </div>
-      </Html>
+      </Html> */}
     </group>
   );
 };
@@ -259,14 +259,14 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
         </React.Fragment>
       ))}
 
-      <Html position={[0, 1.4, 0]} center>
+      {/* <Html position={[0, 1.4, 0]} center>
         <div className="bg-black/80 text-white p-2 rounded text-xs min-w-32 text-center">
           <div className="font-bold">Erlenmeyer Flask</div>
           <div>Volume: 250mL</div>
           <div>Contents: {contents.length}</div>
           <div>Temp: {temperature}°C</div>
         </div>
-      </Html>
+      </Html> */}
     </group>
   );
 };
@@ -361,13 +361,13 @@ export const RealisticBurner: React.FC<AdvancedEquipmentProps & {
         </group>
       )}
 
-      <Html position={[0, -0.3, 0]} center>
+      {/* <Html position={[0, -0.3, 0]} center>
         <div className="bg-black/80 text-white p-2 rounded text-xs text-center">
           <div className="font-bold">Bunsen Burner</div>
           <div>{isLit ? '🔥 Lit' : '⭕ Off'}</div>
           <div className="text-xs text-gray-300">Click knob to toggle</div>
         </div>
-      </Html>
+      </Html> */}
     </group>
   );
 };
