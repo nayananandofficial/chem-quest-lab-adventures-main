@@ -47,6 +47,62 @@ export type Database = {
         }
         Relationships: []
       }
+      chemicals:{
+        Row:{
+           id: number;
+           name: string;
+           formula: string;
+           color: string;
+           state: 'solid' | 'liquid' | 'gas';
+           dangerLevel: 'low' | 'medium' | 'high' | 'extreme';
+           description: string;
+           molarMass: number;
+           density?: number;
+           boilingPoint?: number;
+           meltingPoint?: number;
+           pH?: number;
+           reactsWith: string[];
+           category: 'acid' | 'base' | 'salt' | 'organic' | 'metal' | 'indicator' | 'solvent';
+           hazards: string[];
+           concentration?: string;
+        },
+        Insert:{
+           id: number;
+           name: string;
+           formula: string;
+           color: string;
+           state: 'solid' | 'liquid' | 'gas';
+           dangerLevel: 'low' | 'medium' | 'high' | 'extreme';
+           description: string;
+           molarMass: number;
+           density?: number;
+           boilingPoint?: number;
+           meltingPoint?: number;
+           pH?: number;
+           reactsWith: string[];
+           category: 'acid' | 'base' | 'salt' | 'organic' | 'metal' | 'indicator' | 'solvent';
+           hazards: string[];
+           concentration?: string;
+        } 
+        Update:{
+          id: number;
+          name: string;
+          formula: string;
+          color: string;
+          state: 'solid' | 'liquid' | 'gas';
+          dangerLevel: 'low' | 'medium' | 'high' | 'extreme';
+          description: string;
+          molarMass: number;
+          density?: number;
+          boilingPoint?: number;
+          meltingPoint?: number;
+          pH?: number;
+          reactsWith: string[];
+          category: 'acid' | 'base' | 'salt' | 'organic' | 'metal' | 'indicator' | 'solvent';
+          hazards: string[];
+          concentration?: string;
+        }
+      }
     }
     Views: {
       [_ in never]: never
