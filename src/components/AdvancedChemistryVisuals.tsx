@@ -109,7 +109,7 @@ export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> =
       )}
 
       {/* Temperature display */}
-      <Html position={[0.8, 0, 0]} center>
+      {/* <Html position={[0.8, 0, 0]} center>
         <div className="bg-black/80 text-white px-2 py-1 rounded text-xs">
           <div className="font-mono">{temperature.toFixed(1)}°C</div>
           <div 
@@ -125,7 +125,7 @@ export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> =
             />
           </div>
         </div>
-      </Html>
+      </Html> */}
     </group>
   );
 };
