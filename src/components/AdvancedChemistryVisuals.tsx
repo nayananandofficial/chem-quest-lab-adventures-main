@@ -264,12 +264,12 @@ export const PHIndicator: React.FC<PHIndicatorProps> = ({ pH, position }) => {
         />
       </mesh>
       
-      <Html position={[0, 0.3, 0]} center>
+      {/* <Html position={[0, 0.3, 0]} center>
         <div className="bg-black/90 text-white px-2 py-1 rounded text-xs text-center">
           <div className="font-bold">pH {pH.toFixed(1)}</div>
           <div className="text-xs">{getPHLabel(pH)}</div>
         </div>
-      </Html>
+      </Html> */}
     </group>
   );
 };
