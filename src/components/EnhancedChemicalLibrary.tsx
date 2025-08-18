@@ -1,14 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState ,useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Droplets, AlertTriangle, Info, Flame, Skull } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
 
 interface Chemical {
-  id: string;
+  id: number;
   name: string;
   formula: string;
   color: string;
@@ -26,9 +27,10 @@ interface Chemical {
   concentration?: string;
 }
 
-const chemicalDatabase: Chemical[] = [
-  {
-    id: 'hcl',
+
+/**const chemicalDatabase: Chemical[] = [
+ {
+    id: 0,
     name: 'Hydrochloric Acid',
     formula: 'HCl',
     color: '#FFD700',
@@ -45,7 +47,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: '1M'
   },
   {
-    id: 'naoh',
+    id: 1,
     name: 'Sodium Hydroxide',
     formula: 'NaOH',
     color: '#87CEEB',
@@ -62,7 +64,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: '1M'
   },
   {
-    id: 'nacl',
+    id: 2,
     name: 'Sodium Chloride',
     formula: 'NaCl',
     color: '#FFFFFF',
@@ -79,7 +81,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: 'saturated'
   },
   {
-    id: 'cuso4',
+    id: 3,
     name: 'Copper Sulfate',
     formula: 'CuSO₄·5H₂O',
     color: '#4169E1',
@@ -95,7 +97,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: '0.5M'
   },
   {
-    id: 'h2so4',
+    id: 4,
     name: 'Sulfuric Acid',
     formula: 'H₂SO₄',
     color: '#FFFF99',
@@ -112,7 +114,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: '0.1M'
   },
   {
-    id: 'fe2o3',
+    id: 5,
     name: 'Iron Oxide',
     formula: 'Fe₂O₃',
     color: '#CD853F',
@@ -129,7 +131,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: 'pure'
   },
   {
-    id: 'mg',
+    id: 6,
     name: 'Magnesium',
     formula: 'Mg',
     color: '#C0C0C0',
@@ -145,7 +147,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: 'pure'
   },
   {
-    id: 'phenolphthalein',
+    id: 7,
     name: 'Phenolphthalein',
     formula: 'C₂₀H₁₄O₄',
     color: '#FFB6C1',
@@ -160,7 +162,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: '0.1%'
   },
   {
-    id: 'ethanol',
+    id: 8,
     name: 'Ethanol',
     formula: 'C₂H₅OH',
     color: '#F0F8FF',
@@ -176,7 +178,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: '95%'
   },
   {
-    id: 'agno3',
+    id: 9,
     name: 'Silver Nitrate',
     formula: 'AgNO₃',
     color: '#E6E6FA',
@@ -192,6 +194,7 @@ const chemicalDatabase: Chemical[] = [
     concentration: '0.1M'
   }
 ];
+**/
 
 interface EnhancedChemicalLibraryProps {
   onChemicalSelect: (chemical: Chemical) => void;
@@ -202,13 +205,28 @@ export const EnhancedChemicalLibrary: React.FC<EnhancedChemicalLibraryProps> = (
   onChemicalSelect, 
   selectedEquipment 
 }) => {
+  const [chemicals, setChemicals] = useState<Chemical[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedChemical, setSelectedChemical] = useState<Chemical | null>(null);
+ useEffect(() => {
+    const fetchChemicals = async () => {
+      const { data, error } = await supabase
+        .from("chemicals")
+        .select("*")
+        .order("id", { ascending: true })
 
+      if (error) {
+        console.error("Error fetching chemicals:", error)
+      } else {
+        setChemicals(data)
+      }
+    }
+    fetchChemicals()
+  }, [])
   const categories = ['all', 'acid', 'base', 'salt', 'organic', 'metal', 'indicator', 'solvent'];
 
-  const filteredChemicals = chemicalDatabase.filter(chemical => {
+  const filteredChemicals = chemicals.filter(chemical => {
     const matchesSearch = chemical.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     chemical.formula.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || chemical.category === selectedCategory;
@@ -281,7 +299,7 @@ export const EnhancedChemicalLibrary: React.FC<EnhancedChemicalLibraryProps> = (
           </div>
 
           {/* Chemical List */}
-          <ScrollArea className="h-64">
+          <ScrollArea className="h-40">
             <div className="space-y-2">
               {filteredChemicals.map(chemical => (
                 <div
@@ -330,7 +348,7 @@ export const EnhancedChemicalLibrary: React.FC<EnhancedChemicalLibraryProps> = (
 
           {/* Selected Chemical Details */}
           {selectedChemical && (
-            <Card className="border-primary/50">
+            <Card className="border-primary/50 ">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <div

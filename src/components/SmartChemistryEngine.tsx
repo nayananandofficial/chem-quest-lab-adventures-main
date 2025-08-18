@@ -24,7 +24,6 @@ export interface ReactionData {
   mechanism?: string[];
   educationalNotes: string[];
 }
-
 export interface SafetyAlert {
   id: string;
   level: 'warning' | 'danger' | 'critical';
@@ -33,7 +32,6 @@ export interface SafetyAlert {
   action: string;
   timestamp: Date;
 }
-
 const reactionDatabase: ReactionData[] = [
   {
     id: 'hcl_naoh_neutralization',
