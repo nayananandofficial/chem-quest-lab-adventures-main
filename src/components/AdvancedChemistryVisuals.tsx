@@ -316,17 +316,6 @@ export const EquipmentStateIndicator: React.FC<EquipmentStateIndicatorProps> = (
 }) => {
   return (
     <group position={position}>
-      {/* Selection indicator */}
-      {isSelected && (
-        <mesh>
-          <torusGeometry args={[0.6, 0.05, 8, 32]} />
-          <meshStandardMaterial 
-            color="#00FFFF"
-            emissive="#004444"
-            emissiveIntensity={0.5}
-          />
-        </mesh>
-      )}
 
       {/* Heat indicator */}
       {isHeated && (

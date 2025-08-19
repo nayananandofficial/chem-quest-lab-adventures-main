@@ -84,7 +84,7 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
     <group ref={beakerRef} position={position}>
       {/* Beaker body with more realistic shape */}
       <mesh onClick={onClick} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
-        <cylinderGeometry args={[0.45, 0.35, 1.4, 32]} />
+        <cylinderGeometry args={[0.45, 0.45, 1.4, 32]} />
         <meshPhysicalMaterial 
           color={isSelected ? '#60A5FA' : '#E6F3FF'}
           transparent
@@ -95,15 +95,9 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
         />
       </mesh>
 
-      {/* Beaker rim */}
-      <mesh position={[0, 0.7, 0]}>
-        <torusGeometry args={[0.45, 0.03, 8, 32]} />
-        <meshStandardMaterial color="#CCCCCC" metalness={0.8} roughness={0.2} />
-      </mesh>
-
       {/* Spout */}
-      <mesh position={[0.4, 0.5, 0]} rotation={[0, 0, Math.PI / 6]}>
-        <cylinderGeometry args={[0.08, 0.1, 0.3, 16]} />
+      {/* <mesh position={[0.38, 0.64, 0]} rotation={[0.08, 0, Math.PI / 6]}>
+        <cylinderGeometry args={[0.05, 0.1, 0.1, 16]} />
         <meshPhysicalMaterial 
           color="#E6F3FF"
           transparent
@@ -111,18 +105,18 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
           roughness={0.1}
           transmission={0.9}
         />
-      </mesh>
+      </mesh> */}
 
       {/* Liquid with better rendering */}
       {liquidHeight > 0 && (
         <mesh ref={liquidRef} position={[0, -0.7 + liquidHeight/2, 0]}>
-          <cylinderGeometry args={[0.42, 0.32, liquidHeight, 32]} />
+          <cylinderGeometry args={[0.45, 0.45, liquidHeight, 32]} />
           <meshPhysicalMaterial 
             color={getLiquidColor()}
-            transparent
-            opacity={0.85}
+            
+            opacity={0.9}
             roughness={0.0}
-            metalness={0.1}
+            metalness={0.2}
             clearcoat={1.0}
             clearcoatRoughness={0.1}
           />
@@ -130,8 +124,8 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
       )}
 
       {/* Measurement markings */}
-      {[0.2, 0.4, 0.6, 0.8].map((height, index) => (
-        <mesh key={index} position={[0.46, -0.4 + height, 0]}>
+      {[0, 0.2, 0.4, 0.6, 0.8, 1].map((height, index) => (
+        <mesh key={index} position={[0.45, -0.4 + height, 0]}>
           <boxGeometry args={[0.02, 0.01, 0.1]} />
           <meshStandardMaterial color="#666666" />
         </mesh>
@@ -218,12 +212,6 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
           roughness={0.1}
           transmission={0.8}
         />
-      </mesh>
-
-      {/* Flask opening */}
-      <mesh position={[0, 1.1, 0]}>
-        <torusGeometry args={[0.12, 0.02, 8, 32]} />
-        <meshStandardMaterial color="#CCCCCC" metalness={0.8} roughness={0.2} />
       </mesh>
 
       {/* Liquid in flask */}
