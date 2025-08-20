@@ -90,11 +90,7 @@ const EnhancedBeaker: React.FC<{
     checkForReaction();
   }, [equipment.contents]);
 
-  useFrame((state) => {
-    if (meshRef.current && hovered) {
-      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 2) * 0.05;
-    }
-  });
+  // Removed useFrame animation for performance; consider adding a more noticeable or interactive animation if needed.
 
   const liquidHeight = equipment.contents ? Math.min(equipment.contents.length * 0.3, 1.2) : 0;
 
