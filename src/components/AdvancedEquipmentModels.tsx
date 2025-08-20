@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Html, Text } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
+import { Html, Text } from "@react-three/drei";
+import * as THREE from "three";
 
 interface AdvancedEquipmentProps {
   position: [number, number, number];
@@ -19,40 +19,40 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
   isSelected,
   temperature,
   isHeated,
-  onClick
+  onClick,
 }) => {
   const beakerRef = useRef<THREE.Group>(null);
   const liquidRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
   const liquidHeight = Math.min(contents.length * 0.25, 1.0);
-  
+
   const getLiquidColor = () => {
-    if (contents.length === 0) return '#87CEEB';
-    
+    if (contents.length === 0) return "#87CEEB";
+
     // More sophisticated color mixing
     const colorMap: { [key: string]: THREE.Color } = {
-      'Hydrochloric Acid': new THREE.Color('#FFD700'),
-      'HCl': new THREE.Color('#FFD700'),
-      'Sodium Hydroxide': new THREE.Color('#87CEEB'),
-      'NaOH': new THREE.Color('#87CEEB'),
-      'Copper Sulfate': new THREE.Color('#4169E1'),
-      'CuSO4': new THREE.Color('#4169E1'),
-      'Sulfuric Acid': new THREE.Color('#FFFF99'),
-      'H2SO4': new THREE.Color('#FFFF99'),
-      'Iron Oxide': new THREE.Color('#CD853F'),
-      'Fe2O3': new THREE.Color('#CD853F'),
-      'Potassium Permanganate': new THREE.Color('#800080'),
-      'KMnO4': new THREE.Color('#800080')
+      "Hydrochloric Acid": new THREE.Color("#FFD700"),
+      HCl: new THREE.Color("#FFD700"),
+      "Sodium Hydroxide": new THREE.Color("#87CEEB"),
+      NaOH: new THREE.Color("#87CEEB"),
+      "Copper Sulfate": new THREE.Color("#4169E1"),
+      CuSO4: new THREE.Color("#4169E1"),
+      "Sulfuric Acid": new THREE.Color("#FFFF99"),
+      H2SO4: new THREE.Color("#FFFF99"),
+      "Iron Oxide": new THREE.Color("#CD853F"),
+      Fe2O3: new THREE.Color("#CD853F"),
+      "Potassium Permanganate": new THREE.Color("#800080"),
+      KMnO4: new THREE.Color("#800080"),
     };
 
     if (contents.length === 1) {
-      return colorMap[contents[0]] || new THREE.Color('#87CEEB');
+      return colorMap[contents[0]] || new THREE.Color("#87CEEB");
     }
 
     // Mix colors for multiple chemicals
-    let mixedColor = new THREE.Color('#87CEEB');
-    contents.forEach(chemical => {
+    let mixedColor = new THREE.Color("#87CEEB");
+    contents.forEach((chemical) => {
       const chemColor = colorMap[chemical];
       if (chemColor) {
         mixedColor.lerp(chemColor, 0.5);
@@ -61,7 +61,7 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
 
     // Temperature affects color
     if (temperature > 50) {
-      mixedColor.lerp(new THREE.Color('#FF6B6B'), 0.2);
+      mixedColor.lerp(new THREE.Color("#FF6B6B"), 0.2);
     }
 
     return mixedColor;
@@ -70,12 +70,16 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
   useFrame((state) => {
     if (beakerRef.current) {
       if (isSelected) {
-        beakerRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 2) * 0.1;
+        beakerRef.current.rotation.y =
+          Math.sin(state.clock.elapsedTime * 2) * 0.1;
       }
-      
+
       if (isHeated && liquidRef.current) {
         // Add subtle liquid movement when heated
-        liquidRef.current.position.y = -0.7 + liquidHeight/2 + Math.sin(state.clock.elapsedTime * 8) * 0.02;
+        liquidRef.current.position.y =
+          -0.7 +
+          liquidHeight / 2 +
+          Math.sin(state.clock.elapsedTime * 8) * 0.02;
       }
     }
   });
@@ -83,10 +87,14 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
   return (
     <group ref={beakerRef} position={position}>
       {/* Beaker body with more realistic shape */}
-      <mesh onClick={onClick} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+      <mesh
+        onClick={onClick}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
         <cylinderGeometry args={[0.45, 0.45, 1.4, 32]} />
-        <meshPhysicalMaterial 
-          color={isSelected ? '#60A5FA' : '#E6F3FF'}
+        <meshPhysicalMaterial
+          color={isSelected ? "#60A5FA" : "#E6F3FF"}
           transparent
           opacity={0.7}
           roughness={0.1}
@@ -109,11 +117,10 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
 
       {/* Liquid with better rendering */}
       {liquidHeight > 0 && (
-        <mesh ref={liquidRef} position={[0, -0.7 + liquidHeight/2, 0]}>
+        <mesh ref={liquidRef} position={[0, -0.7 + liquidHeight / 2, 0]}>
           <cylinderGeometry args={[0.45, 0.45, liquidHeight, 32]} />
-          <meshPhysicalMaterial 
+          <meshPhysicalMaterial
             color={getLiquidColor()}
-            
             opacity={0.9}
             roughness={0.0}
             metalness={0.2}
@@ -135,9 +142,15 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
       {temperature > 30 && (
         <mesh position={[0, 0.8, 0]}>
           <sphereGeometry args={[0.05, 8, 8]} />
-          <meshStandardMaterial 
-            color={temperature > 80 ? '#FF4444' : temperature > 50 ? '#FF8844' : '#FFAA44'}
-            emissive={temperature > 80 ? '#440000' : '#000000'}
+          <meshStandardMaterial
+            color={
+              temperature > 80
+                ? "#FF4444"
+                : temperature > 50
+                ? "#FF8844"
+                : "#FFAA44"
+            }
+            emissive={temperature > 80 ? "#440000" : "#000000"}
           />
         </mesh>
       )}
@@ -160,7 +173,7 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
   contents,
   isSelected,
   temperature,
-  onClick
+  onClick,
 }) => {
   const flaskRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
@@ -168,32 +181,37 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
   const liquidHeight = Math.min(contents.length * 0.15, 0.5);
 
   const getLiquidColor = () => {
-    if (contents.length === 0) return '#87CEEB';
-    
+    if (contents.length === 0) return "#87CEEB";
+
     const colorMap: { [key: string]: string } = {
-      'Hydrochloric Acid': '#FFD700',
-      'Sodium Hydroxide': '#87CEEB',
-      'Copper Sulfate': '#4169E1',
-      'Sulfuric Acid': '#FFFF99',
-      'Iron Oxide': '#CD853F'
+      "Hydrochloric Acid": "#FFD700",
+      "Sodium Hydroxide": "#87CEEB",
+      "Copper Sulfate": "#4169E1",
+      "Sulfuric Acid": "#FFFF99",
+      "Iron Oxide": "#CD853F",
     };
 
-    return colorMap[contents[0]] || '#87CEEB';
+    return colorMap[contents[0]] || "#87CEEB";
   };
 
   useFrame((state) => {
     if (flaskRef.current && isSelected) {
-      flaskRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 2) * 0.05;
+      flaskRef.current.rotation.y =
+        Math.sin(state.clock.elapsedTime * 2) * 0.05;
     }
   });
 
   return (
-    <group ref={flaskRef} position={position}>
+    <group ref={flaskRef} position={[0, -0.4, 0]}>
       {/* Flask bottom - more realistic round bottom */}
-      <mesh onClick={onClick} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+      <mesh
+        onClick={onClick}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
         <sphereGeometry args={[0.35, 32, 32]} />
-        <meshPhysicalMaterial 
-          color={isSelected ? '#F59E0B' : '#FEF3C7'}
+        <meshPhysicalMaterial
+          color={isSelected ? "#F59E0B" : "#FEF3C7"}
           transparent
           opacity={0.8}
           roughness={0.1}
@@ -205,8 +223,8 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
       {/* Flask neck - longer and more elegant */}
       <mesh position={[0, 0.6, 0]}>
         <cylinderGeometry args={[0.12, 0.15, 1.0, 32]} />
-        <meshPhysicalMaterial 
-          color={isSelected ? '#F59E0B' : '#FEF3C7'}
+        <meshPhysicalMaterial
+          color={isSelected ? "#F59E0B" : "#FEF3C7"}
           transparent
           opacity={0.8}
           roughness={0.1}
@@ -216,16 +234,18 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
 
       {/* Liquid in flask */}
       {liquidHeight > 0 && (
-        <mesh position={[0, -0.35 + liquidHeight/2, 0]}>
-          <sphereGeometry args={[0.32, 32, 32]} />
-          <meshPhysicalMaterial 
-            color={getLiquidColor()}
-            transparent
-            opacity={0.9}
-            roughness={0.0}
-            metalness={0.1}
-          />
-        </mesh>
+        <group position={[0, -0, 0]}>
+          {/* Cylinder body (flat top) */}
+          <mesh rotation={[Math.PI, 0, 0]}>
+            <sphereGeometry args={[0.34, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshPhysicalMaterial
+              color={getLiquidColor()}
+              opacity={0.9}
+            />
+          </mesh>
+
+          {/* Hemisphere bottom */}
+        </group>
       )}
 
       {/* Volume markings */}
@@ -259,26 +279,24 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
   );
 };
 
-export const RealisticBurner: React.FC<AdvancedEquipmentProps & { 
-  isLit: boolean; 
-  onToggle: () => void 
-}> = ({
-  position,
-  isLit,
-  onToggle,
-  onClick
-}) => {
+export const RealisticBurner: React.FC<
+  AdvancedEquipmentProps & {
+    isLit: boolean;
+    onToggle: () => void;
+  }
+> = ({ position, isLit, onToggle, onClick }) => {
   const flameRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     if (flameRef.current && isLit) {
       flameRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 4) * 0.1;
-      flameRef.current.scale.y = 1 + Math.sin(state.clock.elapsedTime * 6) * 0.2;
+      flameRef.current.scale.y =
+        1 + Math.sin(state.clock.elapsedTime * 6) * 0.2;
     }
   });
 
   return (
-    <group position={position}>
+    <group position={[0, -0.6, 0]}>
       {/* Burner base */}
       <mesh onClick={onClick}>
         <cylinderGeometry args={[0.25, 0.3, 0.2, 32]} />
@@ -316,7 +334,7 @@ export const RealisticBurner: React.FC<AdvancedEquipmentProps & {
           {/* Inner flame - blue */}
           <mesh>
             <coneGeometry args={[0.15, 0.4, 8]} />
-            <meshStandardMaterial 
+            <meshStandardMaterial
               color="#0088FF"
               emissive="#0066CC"
               emissiveIntensity={0.8}
@@ -324,11 +342,11 @@ export const RealisticBurner: React.FC<AdvancedEquipmentProps & {
               opacity={0.7}
             />
           </mesh>
-          
+
           {/* Outer flame - orange */}
           <mesh position={[0, 0.1, 0]}>
             <coneGeometry args={[0.12, 0.3, 8]} />
-            <meshStandardMaterial 
+            <meshStandardMaterial
               color="#FF6600"
               emissive="#FF4400"
               emissiveIntensity={1.0}
@@ -340,11 +358,7 @@ export const RealisticBurner: React.FC<AdvancedEquipmentProps & {
           {/* Heat distortion effect */}
           <mesh position={[0, 0.5, 0]}>
             <sphereGeometry args={[0.3, 8, 8]} />
-            <meshStandardMaterial 
-              color="#FFAA00"
-              transparent
-              opacity={0.1}
-            />
+            <meshStandardMaterial color="#FFAA00" transparent opacity={0.1} />
           </mesh>
         </group>
       )}
