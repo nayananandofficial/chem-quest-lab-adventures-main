@@ -303,12 +303,6 @@ export const RealisticBurner: React.FC<
         <meshStandardMaterial color="#2C2C2C" metalness={0.8} roughness={0.3} />
       </mesh>
 
-      {/* Burner ring */}
-      <mesh position={[0, 0.1, 0]}>
-        <torusGeometry args={[0.2, 0.02, 8, 32]} />
-        <meshStandardMaterial color="#1C1C1C" metalness={0.9} roughness={0.1} />
-      </mesh>
-
       {/* Gas holes */}
       {Array.from({ length: 8 }).map((_, i) => {
         const angle = (i / 8) * Math.PI * 2;
