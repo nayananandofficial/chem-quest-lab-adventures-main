@@ -255,14 +255,14 @@ export const PHIndicator: React.FC<PHIndicatorProps> = ({ pH, position }) => {
 
   return (
     <group position={position}>
-      <mesh>
+      {/* <mesh>
         <sphereGeometry args={[0.1, 16, 16]} />
         <meshStandardMaterial 
           color={getPHColor(pH)}
           emissive={getPHColor(pH)}
           emissiveIntensity={0.2}
         />
-      </mesh>
+      </mesh> */}
       
       {/* <Html position={[0, 0.3, 0]} center>
         <div className="bg-black/90 text-white px-2 py-1 rounded text-xs text-center">
