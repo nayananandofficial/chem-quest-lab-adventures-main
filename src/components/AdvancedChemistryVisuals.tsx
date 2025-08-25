@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -23,43 +23,52 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   const liquidRef = useRef<THREE.Mesh>(null);
   const [wavePhase, setWavePhase] = useState(0);
 
+  // Memoize geometry creation - only recalculate when shape or volume changes
+  const liquidGeometry = useMemo(() => {
+    if (containerShape === 'cylinder') {
+      return <cylinderGeometry args={[0.4, 0.3, liquidVolume, 32]} />;
+    } else {
+      return <sphereGeometry args={[0.3 * liquidVolume, 32, 32]} />;
+    }
+  }, [containerShape, liquidVolume]);
+
+  // Memoize material creation - only recalculate when viscosity changes
+  const liquidMaterial = useMemo(() => (
+    <meshPhysicalMaterial 
+      color="#87CEEB"
+      transparent
+      opacity={0.8 - viscosity * 0.2}
+      roughness={viscosity}
+      metalness={0.1}
+      clearcoat={1.0}
+      clearcoatRoughness={0.1}
+    />
+  ), [viscosity]);
+
+  // Memoize wave calculation function - only recreate when agitation changes
+  const calculateWavePosition = useCallback((time: number) => {
+    const waveHeight = agitation * 0.02;
+    return position[1] + Math.sin(time * 2 + wavePhase) * waveHeight;
+  }, [agitation, position, wavePhase]);
+
   useFrame((state) => {
     if (liquidRef.current) {
-      // Simulate liquid movement based on agitation
       const time = state.clock.elapsedTime;
-      const waveHeight = agitation * 0.02;
       
       if (containerShape === 'cylinder') {
-        liquidRef.current.position.y = position[1] + Math.sin(time * 2 + wavePhase) * waveHeight;
+        liquidRef.current.position.y = calculateWavePosition(time);
       }
       
-      // Surface tension effects
       if (agitation > 0.5) {
         liquidRef.current.rotation.z = Math.sin(time * 4) * agitation * 0.1;
       }
     }
   });
 
-  const getLiquidGeometry = () => {
-    if (containerShape === 'cylinder') {
-      return <cylinderGeometry args={[0.4, 0.3, liquidVolume, 32]} />;
-    } else {
-      return <sphereGeometry args={[0.3 * liquidVolume, 32, 32]} />;
-    }
-  };
-
   return (
     <mesh ref={liquidRef} position={position}>
-      {getLiquidGeometry()}
-      <meshPhysicalMaterial 
-        color="#87CEEB"
-        transparent
-        opacity={0.8 - viscosity * 0.2}
-        roughness={viscosity}
-        metalness={0.1}
-        clearcoat={1.0}
-        clearcoatRoughness={0.1}
-      />
+      {liquidGeometry}
+      {liquidMaterial}
     </mesh>
   );
 };
