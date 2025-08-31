@@ -1,9 +1,5 @@
 
-import React, { useRef, useState, useEffect } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import { Text, Html } from '@react-three/drei';
-import { useDragDrop } from './DragDropProvider';
-import ChemicalReaction from './ChemicalReaction';
+import React, { useState, useEffect } from 'react';
 import { 
   BubblingEffect, 
   SteamEffect, 
@@ -18,7 +14,7 @@ import {
   ReactionProgressBar, 
   EquipmentStateIndicator 
 } from './AdvancedChemistryVisuals';
-import * as THREE from 'three';
+
 
 interface Equipment {
   type: string;
@@ -45,205 +41,8 @@ interface EnhancedLabEquipmentProps {
   equipmentContents?: string[];
 }
 
-const EnhancedBeaker: React.FC<{ 
-  equipment: Equipment, 
-  onClick: () => void,
-  onDrop: (chemical: string) => void,
-  position: [number, number, number]
-}> = ({ equipment, onClick, onDrop, position }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [hovered, setHovered] = useState(false);
-  const [showReaction, setShowReaction] = useState(false);
-  const { setDraggedItem, setIsDragging } = useDragDrop();
 
-  const getLiquidColor = () => {
-    if (!equipment.contents || equipment.contents.length === 0) return '#87CEEB';
-    if (equipment.contents.includes('Hydrochloric Acid') || equipment.contents.includes('HCl')) return '#FFD700';
-    if (equipment.contents.includes('Sodium Hydroxide') || equipment.contents.includes('NaOH')) return '#87CEEB';
-    if (equipment.contents.includes('Copper Sulfate') || equipment.contents.includes('CuSO4')) return '#4169E1';
-    if (equipment.contents.includes('Sulfuric Acid') || equipment.contents.includes('H2SO4')) return '#FFFF99';
-    if (equipment.contents.includes('Iron Oxide') || equipment.contents.includes('Fe2O3')) return '#CD853F';
-    return '#87CEEB';
-  };
 
-  const checkForReaction = () => {
-    if (equipment.contents && equipment.contents.length >= 2) {
-      const hasAcid = equipment.contents.some(c => 
-        c.includes('Hydrochloric Acid') || 
-        c.includes('Sulfuric Acid') || 
-        c.includes('HCl') || 
-        c.includes('H2SO4')
-      );
-      const hasBase = equipment.contents.some(c => 
-        c.includes('Sodium Hydroxide') || 
-        c.includes('NaOH')
-      );
-      
-      if (hasAcid && hasBase) {
-        setShowReaction(true);
-        setTimeout(() => setShowReaction(false), 5000);
-      }
-    }
-  };
-
-  useEffect(() => {
-    checkForReaction();
-  }, [equipment.contents]);
-
-  // Removed useFrame animation for performance; consider adding a more noticeable or interactive animation if needed.
-
-  const liquidHeight = equipment.contents ? Math.min(equipment.contents.length * 0.3, 1.2) : 0;
-
-  return (
-    <group position={position}>
-      {/* Main beaker */}
-      <mesh
-        ref={meshRef}
-        onClick={onClick}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-        castShadow
-        receiveShadow
-      >
-        <cylinderGeometry args={[0.5, 0.3, 1.5, 16]} />
-        <meshStandardMaterial 
-          color={hovered ? "#60A5FA" : "#3B82F6"} 
-          transparent 
-          opacity={0.6}
-        />
-      </mesh>
-
-      {/* Liquid inside */}
-      {liquidHeight > 0 && (
-        <mesh position={[0, -0.75 + liquidHeight/2, 0]}>
-          <cylinderGeometry args={[0.45, 0.28, liquidHeight, 16]} />
-          <meshStandardMaterial 
-            color={getLiquidColor()}
-            transparent 
-            opacity={0.8}
-          />
-        </mesh>
-      )}
-
-      {/* Equipment label */}
-      <Text
-        position={[0, 1.2, 0]}
-        fontSize={0.12}
-        color="#FFFFFF"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {equipment.type} • {equipment.contents?.length || 0} chemicals
-      </Text>
-
-      {/* Contents list */}
-      {equipment.contents && equipment.contents.length > 0 && (
-        <Html position={[0, -1.5, 0]} center>
-          <div className="bg-black/80 text-white p-2 rounded text-xs max-w-40">
-            <div className="font-medium mb-1">Contents:</div>
-            {equipment.contents.map((chemical, index) => (
-              <div key={index} className="text-xs">• {chemical}</div>
-            ))}
-          </div>
-        </Html>
-      )}
-
-      {/* Chemical reaction effect */}
-      {showReaction && (
-        <ChemicalReaction
-          position={[0, 0.5, 0]}
-          reactionType="acid-base"
-          intensity={0.8}
-          onComplete={() => setShowReaction(false)}
-        />
-      )}
-    </group>
-  );
-};
-
-const EnhancedFlask: React.FC<{ 
-  equipment: Equipment, 
-  onClick: () => void,
-  position: [number, number, number]
-}> = ({ equipment, onClick, position }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [hovered, setHovered] = useState(false);
-
-  const liquidHeight = equipment.contents ? Math.min(equipment.contents.length * 0.2, 0.6) : 0;
-
-  const getLiquidColor = () => {
-    if (!equipment.contents || equipment.contents.length === 0) return '#87CEEB';
-    if (equipment.contents.includes('Hydrochloric Acid') || equipment.contents.includes('HCl')) return '#FFD700';
-    if (equipment.contents.includes('Sodium Hydroxide') || equipment.contents.includes('NaOH')) return '#87CEEB';
-    if (equipment.contents.includes('Copper Sulfate') || equipment.contents.includes('CuSO4')) return '#4169E1';
-    return '#87CEEB';
-  };
-
-  return (
-    <group position={position}>
-      {/* Flask base */}
-      <mesh
-        ref={meshRef}
-        onClick={onClick}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-        castShadow
-        receiveShadow
-      >
-        <sphereGeometry args={[0.4, 16, 16]} />
-        <meshStandardMaterial 
-          color={hovered ? "#F59E0B" : "#D97706"} 
-          transparent 
-          opacity={0.8}
-        />
-      </mesh>
-      
-      {/* Liquid inside flask */}
-      {liquidHeight > 0 && (
-        <mesh position={[0, -0.4 + liquidHeight/2, 0]}>
-          <sphereGeometry args={[0.35, 16, 16]} />
-          <meshStandardMaterial 
-            color={getLiquidColor()}
-            transparent 
-            opacity={0.8}
-          />
-        </mesh>
-      )}
-      
-      {/* Flask neck */}
-      <mesh position={[0, 0.5, 0]}>
-        <cylinderGeometry args={[0.15, 0.15, 0.8, 16]} />
-        <meshStandardMaterial 
-          color={hovered ? "#F59E0B" : "#D97706"} 
-          transparent 
-          opacity={0.8}
-        />
-      </mesh>
-
-      <Text
-        position={[0, 1.2, 0]}
-        fontSize={0.12}
-        color="#FFFFFF"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {equipment.type} • {equipment.contents?.length || 0} chemicals
-      </Text>
-
-      {/* Contents list for flask */}
-      {equipment.contents && equipment.contents.length > 0 && (
-        <Html position={[0, -1.5, 0]} center>
-          <div className="bg-black/80 text-white p-2 rounded text-xs max-w-40">
-            <div className="font-medium mb-1">Contents:</div>
-            {equipment.contents.map((chemical, index) => (
-              <div key={index} className="text-xs">• {chemical}</div>
-            ))}
-          </div>
-        </Html>
-      )}
-    </group>
-  );
-};
 
 export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({ 
   selectedEquipment, 

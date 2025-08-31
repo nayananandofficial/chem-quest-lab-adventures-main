@@ -327,7 +327,7 @@ export const EquipmentStateIndicator: React.FC<EquipmentStateIndicatorProps> = (
     <group position={position}>
 
       {/* Heat indicator */}
-      {isHeated && (
+      {/* {isHeated && (
         <mesh position={[0, 0.8, 0]}>
           <sphereGeometry args={[0.05, 8, 8]} />
           <meshStandardMaterial 
@@ -336,10 +336,10 @@ export const EquipmentStateIndicator: React.FC<EquipmentStateIndicatorProps> = (
             emissiveIntensity={0.8}
           />
         </mesh>
-      )}
+      )} */}
 
       {/* Reaction indicator */}
-      {hasReaction && (
+      {/* {hasReaction && (
         <mesh position={[0, 1.0, 0]}>
           <octahedronGeometry args={[0.08, 0]} />
           <meshStandardMaterial 
@@ -348,7 +348,7 @@ export const EquipmentStateIndicator: React.FC<EquipmentStateIndicatorProps> = (
             emissiveIntensity={0.6}
           />
         </mesh>
-      )}
+      )} */}
     </group>
   );
 };
