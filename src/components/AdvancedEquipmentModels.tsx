@@ -1,7 +1,17 @@
-import React, { useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Html, Text } from "@react-three/drei";
-import * as THREE from "three";
+import React, { useRef, useState } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Html, Text, useGLTF } from '@react-three/drei';
+import * as THREE from 'three';
+import { GLTF } from 'three-stdlib';
+
+type GLTFResult = GLTF & {
+  nodes: {
+    lab_beaker_a_0: THREE.Mesh
+  }
+  materials: {
+    lab_beaker_a: THREE.MeshPhysicalMaterial
+  }
+};
 
 interface AdvancedEquipmentProps {
   position: [number, number, number];
@@ -84,24 +94,32 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
     }
   });
 
+  const { nodes, materials } = useGLTF('/models/beaker/scene.gltf') as GLTFResult;
+
   return (
-    <group ref={beakerRef} position={position}>
+    <group ref={beakerRef} position={[position[0], position[1] - 0.7, position[2]]}>
       {/* Beaker body with more realistic shape */}
-      <mesh
-        onClick={onClick}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-      >
-        <cylinderGeometry args={[0.45, 0.45, 1.4, 32]} />
-        <meshPhysicalMaterial
-          color={isSelected ? "#60A5FA" : "#E6F3FF"}
-          transparent
-          opacity={0.7}
-          roughness={0.1}
-          transmission={0.9}
-          thickness={0.1}
-        />
-      </mesh>
+            {/* GLTF Beaker Model */}
+      <group scale={0.1} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh
+          geometry={nodes.lab_beaker_a_0.geometry}
+          material={materials.lab_beaker_a}
+          onClick={onClick}
+          onPointerOver={() => setHovered(true)}
+          onPointerOut={() => setHovered(false)}
+          castShadow
+          receiveShadow
+        >
+          {isSelected && (
+            <meshStandardMaterial
+              color="#60A5FA"
+              transparent
+              opacity={0.7}
+              roughness={0.1}
+            />
+          )}
+        </mesh>
+      </group>
 
       {/* Spout */}
       {/* <mesh position={[0.38, 0.64, 0]} rotation={[0.08, 0, Math.PI / 6]}>
@@ -367,3 +385,5 @@ export const RealisticBurner: React.FC<
     </group>
   );
 };
+
+useGLTF.preload('/models/beaker/scene.gltf');
