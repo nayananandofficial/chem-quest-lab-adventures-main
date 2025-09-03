@@ -232,7 +232,30 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
 
       {/* Reaction Bubbles */}
       {contents.length > 1 && (
-        <SteamParticles temperature={temperature} />
+        <>
+          {/* Bubble particles */}
+          {bubbles.map(bubble => (
+            <mesh 
+              key={bubble.id} 
+              position={[
+                bubble.position.x,
+                bubble.position.y + (1 - bubble.life) * 0.4, // Move upward as life decreases
+                bubble.position.z
+              ]}
+            >
+              <sphereGeometry args={[bubble.size, 8, 8]} />
+              <meshPhysicalMaterial
+                color={getLiquidColor()}
+                transparent
+                opacity={bubble.life * 0.5}
+                roughness={0.0}
+                metalness={0.1}
+                clearcoat={1.0}
+              />
+            </mesh>
+          ))}
+          <SteamParticles temperature={temperature} />
+        </>
       )}
     </group>
   );

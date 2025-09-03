@@ -26,9 +26,9 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   // Memoize geometry creation - only recalculate when shape or volume changes
   const liquidGeometry = useMemo(() => {
     if (containerShape === 'cylinder') {
-      return <cylinderGeometry args={[0.4, 0.3, liquidVolume, 32]} />;
+      return <cylinderGeometry args={[0.4, 0.3, THREE.MathUtils.clamp(Math.abs(liquidVolume), 0.01, 2), 32]} />;
     } else {
-      return <sphereGeometry args={[0.3 * liquidVolume, 32, 32]} />;
+      return <sphereGeometry args={[Math.max(0.05, 0.3 * Math.abs(liquidVolume)), 32, 32]} />;
     }
   }, [containerShape, liquidVolume]);
 
@@ -37,8 +37,8 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
     <meshPhysicalMaterial 
       color="#87CEEB"
       transparent
-      opacity={0.8 - viscosity * 0.2}
-      roughness={viscosity}
+      opacity={THREE.MathUtils.clamp(0.8 - viscosity * 0.2, 0.05, 1)}
+      roughness={THREE.MathUtils.clamp(viscosity, 0, 1)}
       metalness={0.1}
       clearcoat={1.0}
       clearcoatRoughness={0.1}
