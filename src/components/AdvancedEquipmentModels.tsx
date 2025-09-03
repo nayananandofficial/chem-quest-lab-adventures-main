@@ -196,12 +196,12 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
       )}
 
       {/* Measurement markings */}
-      {[0, 0.2, 0.4, 0.6, 0.8, 1].map((height, index) => (
+      {/* {[0, 0.2, 0.4, 0.6, 0.8, 1].map((height, index) => (
         <mesh key={index} position={[0.45, -0.4 + height, 0]}>
           <boxGeometry args={[0.02, 0.01, 0.1]} />
           <meshStandardMaterial color="#666666" />
         </mesh>
-      ))}
+      ))} */}
 
       {/* Temperature indicator */}
       {/* {temperature > 30 && (
