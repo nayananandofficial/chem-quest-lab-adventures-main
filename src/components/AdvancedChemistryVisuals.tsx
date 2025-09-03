@@ -3,12 +3,15 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Minimal helpers for safe values
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-const isFiniteNumber = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
+// Helpers
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+const isFiniteNumber = (n: unknown): n is number =>
+  typeof n === 'number' && Number.isFinite(n);
 const isVec3 = (p: unknown): p is [number, number, number] =>
   Array.isArray(p) && p.length === 3 && p.every((n) => isFiniteNumber(n));
 
+/* ---------------- LIQUID PHYSICS ---------------- */
 interface LiquidPhysicsProps {
   containerShape: 'cylinder' | 'sphere';
   liquidVolume: number;
@@ -24,18 +27,18 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   viscosity,
   density,
   position,
-  agitation
+  agitation,
 }) => {
   const liquidRef = useRef<THREE.Mesh>(null);
-  const [wavePhase, setWavePhase] = useState(0);
+  const [wavePhase] = useState(0);
 
-  // Normalize critical inputs
+  // Normalize inputs
   const vViscosity = clamp(isFiniteNumber(viscosity) ? viscosity : 0.5, 0, 1);
   const vAgitation = clamp(isFiniteNumber(agitation) ? agitation : 0, 0, 1);
   const vVolume = Math.max(0.001, isFiniteNumber(liquidVolume) ? liquidVolume : 0.5);
-  const vPosition = isVec3(position) ? position : [0, 0, 0] as [number, number, number];
+  const vPosition: [number, number, number] = isVec3(position) ? position as [number, number, number] : [0, 0, 0];
 
-  // Memoize geometry creation - only recalculate when shape or volume changes
+  // Geometry
   const liquidGeometry = useMemo(() => {
     if (containerShape === 'cylinder') {
       return (
@@ -43,23 +46,22 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
           args={[0.4, 0.3, THREE.MathUtils.clamp(Math.abs(vVolume), 0.01, 2), 32]}
         />
       );
-    } else {
-      return (
-        <sphereGeometry
-          args={[Math.max(0.05, 0.3 * Math.abs(vVolume)), 32, 32]}
-        />
-      );
     }
+    return (
+      <sphereGeometry
+        args={[Math.max(0.05, 0.3 * Math.abs(vVolume)), 32, 32]}
+      />
+    );
   }, [containerShape, vVolume]);
 
-  // Memoize material creation - only recalculate when viscosity changes
+  // Material
   const liquidMaterial = useMemo(
     () => (
       <meshPhysicalMaterial
         color="#87CEEB"
         transparent
         opacity={THREE.MathUtils.clamp(0.8 - vViscosity * 0.2, 0.05, 1)}
-        roughness={THREE.MathUtils.clamp(vViscosity, 0, 1)}
+        roughness={vViscosity}
         metalness={0.1}
         clearcoat={1.0}
         clearcoatRoughness={0.1}
@@ -68,7 +70,7 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
     [vViscosity]
   );
 
-  // Memoize wave calculation function - only recreate when agitation changes
+  // Wave motion
   const calculateWavePosition = useCallback(
     (time: number) => {
       const waveHeight = vAgitation * 0.02;
@@ -80,11 +82,9 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   useFrame((state) => {
     if (liquidRef.current) {
       const time = state.clock.elapsedTime;
-
       if (containerShape === 'cylinder') {
         liquidRef.current.position.y = calculateWavePosition(time);
       }
-
       if (vAgitation > 0.5) {
         liquidRef.current.rotation.z = Math.sin(time * 4) * vAgitation * 0.1;
       }
@@ -99,6 +99,7 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   );
 };
 
+/* ---------------- TEMPERATURE VIS ---------------- */
 interface TemperatureVisualizationProps {
   temperature: number;
   position: [number, number, number];
@@ -108,15 +109,15 @@ interface TemperatureVisualizationProps {
 export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> = ({
   temperature,
   position,
-  equipmentType
 }) => {
   const t = isFiniteNumber(temperature) ? temperature : 20;
+
   const getTemperatureColor = (temp: number) => {
-    if (temp < 25) return '#0088FF'; // Cold - blue
-    if (temp < 50) return '#00FFFF'; // Cool - cyan
-    if (temp < 75) return '#FFFF00'; // Warm - yellow
-    if (temp < 100) return '#FF8800'; // Hot - orange
-    return '#FF0000'; // Very hot - red
+    if (temp < 25) return '#0088FF';
+    if (temp < 50) return '#00FFFF';
+    if (temp < 75) return '#FFFF00';
+    if (temp < 100) return '#FF8800';
+    return '#FF0000';
   };
 
   const getTemperatureIntensity = (temp: number) => {
@@ -125,7 +126,6 @@ export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> =
 
   return (
     <group position={position}>
-      {/* Temperature glow effect */}
       {t > 30 && (
         <mesh>
           <sphereGeometry args={[0.6, 16, 16]} />
@@ -138,20 +138,16 @@ export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> =
           />
         </mesh>
       )}
-
-      {/* Steam particles for hot liquids */}
       {t > 80 && <SteamParticles temperature={t} />}
     </group>
   );
 };
 
+/* ---------------- STEAM PARTICLES ---------------- */
 export const SteamParticles: React.FC<{ temperature: number }> = ({ temperature }) => {
-  const [particles, setParticles] = useState<{
-    id: number;
-    position: THREE.Vector3;
-    velocity: THREE.Vector3;
-    life: number;
-  }[]>([]);
+  const [particles, setParticles] = useState<
+    { id: number; position: THREE.Vector3; velocity: THREE.Vector3; life: number }[]
+  >([]);
 
   useEffect(() => {
     const safeTemp = isFiniteNumber(temperature) ? temperature : 20;
@@ -168,49 +164,42 @@ export const SteamParticles: React.FC<{ temperature: number }> = ({ temperature 
         if (Math.random() < steamRate) {
           newParticles.push({
             id: particleId++,
-            position: new THREE.Vector3(
-              (Math.random() - 0.5) * 0.3,
-              0,
-              (Math.random() - 0.5) * 0.3
-            ),
+            position: new THREE.Vector3((Math.random() - 0.5) * 0.3, 0, (Math.random() - 0.5) * 0.3),
             velocity: new THREE.Vector3(
               (Math.random() - 0.5) * 0.01,
               0.02 + Math.random() * 0.02,
               (Math.random() - 0.5) * 0.01
             ),
-            life: 1.0
+            life: 1.0,
           });
         }
         return newParticles
-          .map((particle) => ({
-            ...particle,
-            position: particle.position.clone().add(particle.velocity),
-            life: particle.life - 0.02
+          .map((p) => ({
+            ...p,
+            position: p.position.clone().add(p.velocity),
+            life: p.life - 0.02,
           }))
-          .filter((particle) => particle.life > 0)
+          .filter((p) => p.life > 0)
           .slice(-100);
       });
     }, 100);
 
     return () => clearInterval(interval);
-  }, [temperature]); // Add temperature as dependency
+  }, [temperature]);
 
-  // Always return a ReactNode, even if particles are empty
   return (
     <group>
-      {particles.map((particle) => (
-        <mesh
-          key={particle.id}
-          position={particle.position.toArray() as [number, number, number]}
-        >
+      {particles.map((p) => (
+        <mesh key={p.id} position={p.position.toArray() as [number, number, number]}>
           <sphereGeometry args={[0.02, 6, 6]} />
-          <meshStandardMaterial color="#F0F8FF" transparent opacity={particle.life * 0.4} />
+          <meshStandardMaterial color="#F0F8FF" transparent opacity={p.life * 0.4} />
         </mesh>
       ))}
     </group>
   );
 };
 
+/* ---------------- CONCENTRATION GRADIENT ---------------- */
 interface ConcentrationGradientProps {
   chemicals: string[];
   mixingLevel: number;
@@ -220,7 +209,7 @@ interface ConcentrationGradientProps {
 export const ConcentrationGradient: React.FC<ConcentrationGradientProps> = ({
   chemicals,
   mixingLevel,
-  position
+  position,
 }) => {
   const gradientRef = useRef<THREE.Mesh>(null);
   const vMix = clamp(isFiniteNumber(mixingLevel) ? mixingLevel : 0, 0, 1);
@@ -241,6 +230,7 @@ export const ConcentrationGradient: React.FC<ConcentrationGradientProps> = ({
   );
 };
 
+/* ---------------- PH INDICATOR ---------------- */
 interface PHIndicatorProps {
   pH: number;
   position: [number, number, number];
@@ -248,14 +238,15 @@ interface PHIndicatorProps {
 
 export const PHIndicator: React.FC<PHIndicatorProps> = ({ pH, position }) => {
   const vPH = clamp(isFiniteNumber(pH) ? pH : 7, 0, 14);
+
   const getPHColor = (phValue: number) => {
-    if (phValue < 2) return '#FF0000'; // Strong acid - red
-    if (phValue < 4) return '#FF6600'; // Acid - orange
-    if (phValue < 6) return '#FFAA00'; // Weak acid - yellow-orange
-    if (phValue < 8) return '#00FF00'; // Neutral - green
-    if (phValue < 10) return '#0088FF'; // Weak base - blue
-    if (phValue < 12) return '#0000FF'; // Base - dark blue
-    return '#8800FF'; // Strong base - purple
+    if (phValue < 2) return '#FF0000';
+    if (phValue < 4) return '#FF6600';
+    if (phValue < 6) return '#FFAA00';
+    if (phValue < 8) return '#00FF00';
+    if (phValue < 10) return '#0088FF';
+    if (phValue < 12) return '#0000FF';
+    return '#8800FF';
   };
 
   return (
@@ -272,6 +263,7 @@ export const PHIndicator: React.FC<PHIndicatorProps> = ({ pH, position }) => {
   );
 };
 
+/* ---------------- REACTION PROGRESS ---------------- */
 interface ReactionProgressBarProps {
   progress: number;
   reactionType: string;
@@ -281,10 +273,11 @@ interface ReactionProgressBarProps {
 export const ReactionProgressBar: React.FC<ReactionProgressBarProps> = ({
   progress,
   reactionType,
-  position
+  position,
 }) => {
   const vProgress = clamp(isFiniteNumber(progress) ? progress : 0, 0, 1);
   const vType = typeof reactionType === 'string' && reactionType.trim() ? reactionType : 'Reaction';
+
   return (
     <Html position={position} center>
       <div className="bg-black/90 text-white p-2 rounded">
@@ -301,6 +294,7 @@ export const ReactionProgressBar: React.FC<ReactionProgressBarProps> = ({
   );
 };
 
+/* ---------------- EQUIPMENT STATE ---------------- */
 interface EquipmentStateIndicatorProps {
   isSelected: boolean;
   isHeated: boolean;
@@ -312,7 +306,7 @@ export const EquipmentStateIndicator: React.FC<EquipmentStateIndicatorProps> = (
   isSelected,
   isHeated,
   hasReaction,
-  position
+  position,
 }) => {
   return (
     <group position={position}>
@@ -322,7 +316,6 @@ export const EquipmentStateIndicator: React.FC<EquipmentStateIndicatorProps> = (
           <meshStandardMaterial color="#FF6600" emissive="#FF2200" emissiveIntensity={0.8} />
         </mesh>
       )}
-
       {hasReaction && (
         <mesh position={[0, 1.0, 0]}>
           <octahedronGeometry args={[0.08, 0]} />
