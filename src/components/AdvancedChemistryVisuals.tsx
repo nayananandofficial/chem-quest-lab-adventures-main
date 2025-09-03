@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Helpers
+/* ---------------- Helpers ---------------- */
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 const isFiniteNumber = (n: unknown): n is number =>
@@ -36,7 +36,7 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   const vViscosity = clamp(isFiniteNumber(viscosity) ? viscosity : 0.5, 0, 1);
   const vAgitation = clamp(isFiniteNumber(agitation) ? agitation : 0, 0, 1);
   const vVolume = Math.max(0.001, isFiniteNumber(liquidVolume) ? liquidVolume : 0.5);
-  const vPosition: [number, number, number] = isVec3(position) ? position as [number, number, number] : [0, 0, 0];
+  const vPosition: [number, number, number] = isVec3(position) ? position : [0, 0, 0];
 
   // Geometry
   const liquidGeometry = useMemo(() => {
