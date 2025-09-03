@@ -28,7 +28,7 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
     if (containerShape === 'cylinder') {
       return <cylinderGeometry args={[0.4, 0.3, vVolume, 32]} />;
     } else {
-      return <sphereGeometry args={[0.3 * vVolume, 32, 32]} />
+      return <sphereGeometry args={[0.3 * vVolume, 32, 32]} />;
     }
   }, [containerShape, liquidVolume]);
 
