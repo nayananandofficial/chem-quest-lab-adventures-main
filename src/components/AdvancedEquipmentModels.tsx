@@ -1,7 +1,16 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, Text, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import { SteamParticles } from './AdvancedChemistryVisuals';
+
+interface Bubble {
+  id: number;
+  position: THREE.Vector3;
+  speed: number;
+  size: number;
+  life: number;
+}
 import { GLTF } from 'three-stdlib';
 
 type GLTFResult = GLTF & {
@@ -34,6 +43,8 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
   const beakerRef = useRef<THREE.Group>(null);
   const liquidRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
+  const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  const bubbleCount = contents.length > 1 ? 15 : 0; // Only show bubbles when mixing chemicals
 
   const liquidHeight = Math.min(contents.length * 0.25, 1.0);
 
@@ -70,13 +81,14 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
     });
 
     // Temperature affects color
-    if (temperature > 50) {
-      mixedColor.lerp(new THREE.Color("#FF6B6B"), 0.2);
-    }
+    // if (temperature > 50) {
+    //   mixedColor.lerp(new THREE.Color("#FF6B6B"), 0.2);
+    // }
 
     return mixedColor;
   };
 
+  
   useFrame((state) => {
     if (beakerRef.current) {
       if (isSelected) {
@@ -87,7 +99,7 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
       if (isHeated && liquidRef.current) {
         // Add subtle liquid movement when heated
         liquidRef.current.position.y =
-          -0.7 +
+          -0.2 +
           liquidHeight / 2 +
           Math.sin(state.clock.elapsedTime * 8) * 0.02;
       }
@@ -95,6 +107,41 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
   });
 
   const { nodes, materials } = useGLTF('/models/beaker/scene.gltf') as GLTFResult;
+
+  useEffect(() => {
+    if (contents.length > 1) {
+      const interval = setInterval(() => {
+        setBubbles(prev => {
+          // Remove dead bubbles and add new ones
+          const remaining = prev
+            .filter(b => b.life > 0)
+            .map(b => ({
+              ...b,
+              life: b.life - 0.02
+            }));
+
+          // Add new bubbles if needed
+          while (remaining.length < bubbleCount) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * 0.3;
+            remaining.push({
+              id: Date.now() + Math.random(),
+              position: new THREE.Vector3(
+                Math.cos(angle) * radius,
+                -0.2, // Start from bottom
+                Math.sin(angle) * radius
+              ),
+              speed: 0.01 + Math.random() * 0.02,
+              size: 0.02 + Math.random() * 0.02,
+              life: 1.0
+            });
+          }
+          return remaining;
+        });
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [contents.length, bubbleCount]);
 
   return (
     <group ref={beakerRef} position={[position[0], position[1] - 0.7, position[2]]}>
@@ -135,8 +182,8 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
 
       {/* Liquid with better rendering */}
       {liquidHeight > 0 && (
-        <mesh ref={liquidRef} position={[0, -0.7 + liquidHeight / 2, 0]}>
-          <cylinderGeometry args={[0.45, 0.45, liquidHeight, 32]} />
+        <mesh ref={liquidRef} position={[0, 0 + (liquidHeight / 2), 0]}>
+          <cylinderGeometry args={[0.47, 0.47, liquidHeight, 32]} />
           <meshPhysicalMaterial
             color={getLiquidColor()}
             opacity={0.9}
@@ -157,7 +204,7 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
       ))}
 
       {/* Temperature indicator */}
-      {temperature > 30 && (
+      {/* {temperature > 30 && (
         <mesh position={[0, 0.8, 0]}>
           <sphereGeometry args={[0.05, 8, 8]} />
           <meshStandardMaterial
@@ -171,7 +218,7 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
             emissive={temperature > 80 ? "#440000" : "#000000"}
           />
         </mesh>
-      )}
+      )} */}
 
       {/* Equipment label with enhanced info */}
       {/* <Html position={[0, 1.2, 0]} center>
@@ -182,6 +229,11 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
           {isHeated && <div className="text-red-400">🔥 Heated</div>}
         </div>
       </Html> */}
+
+      {/* Reaction Bubbles */}
+      {contents.length > 1 && (
+        <SteamParticles temperature={temperature} />
+      )}
     </group>
   );
 };
@@ -267,7 +319,7 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
       )}
 
       {/* Volume markings */}
-      {[0.1, 0.2, 0.3].map((height, index) => (
+      {/* {[0.1, 0.2, 0.3].map((height, index) => (
         <React.Fragment key={index}>
           <mesh position={[0.36, -0.2 + height, 0]}>
             <boxGeometry args={[0.02, 0.01, 0.08]} />
@@ -283,7 +335,7 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
             {(index + 1) * 50}mL
           </Text>
         </React.Fragment>
-      ))}
+      ))} */}
 
       {/* <Html position={[0, 1.4, 0]} center>
         <div className="bg-black/80 text-white p-2 rounded text-xs min-w-32 text-center">
@@ -368,10 +420,10 @@ export const RealisticBurner: React.FC<
           </mesh>
 
           {/* Heat distortion effect */}
-          <mesh position={[0, 0.5, 0]}>
+          {/* <mesh position={[0, 0.5, 0]}>
             <sphereGeometry args={[0.3, 8, 8]} />
             <meshStandardMaterial color="#FFAA00" transparent opacity={0.1} />
-          </mesh>
+          </mesh> */}
         </group>
       )}
 

@@ -139,7 +139,7 @@ export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> =
   );
 };
 
-const SteamParticles: React.FC<{ temperature: number }> = ({ temperature }) => {
+export const SteamParticles: React.FC<{ temperature: number }> = ({ temperature }) => {
   const [particles, setParticles] = useState<{ 
     id: number; 
     position: THREE.Vector3; 
@@ -185,7 +185,7 @@ const SteamParticles: React.FC<{ temperature: number }> = ({ temperature }) => {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [temperature]);
+  }, []); // No dependencies needed since we use fixed steam rate
 
   return (
     <group>
