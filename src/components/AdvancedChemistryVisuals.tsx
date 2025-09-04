@@ -1,8 +1,13 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-// import { Html } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 
+// Minimal helpers for safe values
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const isFiniteNumber = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
+const isVec3 = (p: unknown): p is [number, number, number] =>
+  Array.isArray(p) && p.length === 3 && p.every((n) => isFiniteNumber(n));
 
 interface LiquidPhysicsProps {
   containerShape: 'cylinder' | 'sphere';
@@ -284,34 +289,34 @@ export const PHIndicator: React.FC<PHIndicatorProps> = ({ pH, position }) => {
   );
 };
 
-// interface ReactionProgressBarProps {
-//   progress: number;
-//   reactionType: string;
-//   position: [number, number, number];
-// }
+interface ReactionProgressBarProps {
+  progress: number;
+  reactionType: string;
+  position: [number, number, number];
+}
 
-// export const ReactionProgressBar: React.FC<ReactionProgressBarProps> = ({
-//   progress,
-//   reactionType,
-//   position
-// }) => {
-//   const vProgress = clamp(isFiniteNumber(progress) ? progress : 0, 0, 1);
-//   const vType = typeof reactionType === 'string' && reactionType.trim() ? reactionType : 'Reaction';
-//   return (
-//     <Html position={position} center>
-//       <div className="bg-black/90 text-white p-2 rounded">
-//         <div className="text-xs font-bold mb-1">{vType}</div>
-//         <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
-//           <div 
-//             className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-300"
-//             style={{ width: `${vProgress * 100}%` }}
-//           />
-//         </div>
-//         <div className="text-xs mt-1">{(vProgress * 100).toFixed(0)}% Complete</div>
-//       </div>
-//     </Html>
-//   );
-// };
+export const ReactionProgressBar: React.FC<ReactionProgressBarProps> = ({
+  progress,
+  reactionType,
+  position
+}) => {
+  const vProgress = clamp(isFiniteNumber(progress) ? progress : 0, 0, 1);
+  const vType = typeof reactionType === 'string' && reactionType.trim() ? reactionType : 'Reaction';
+  return (
+    <Html position={position} center>
+      {/* <div className="bg-black/90 text-white p-2 rounded">
+        <div className="text-xs font-bold mb-1">{vType}</div>
+        <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
+          <div 
+            className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-300"
+            style={{ width: `${vProgress * 100}%` }}
+          />
+        </div>
+        <div className="text-xs mt-1">{(vProgress * 100).toFixed(0)}% Complete</div>
+      </div> */}
+    </Html>
+  );
+};
 
 
 interface EquipmentStateIndicatorProps {
