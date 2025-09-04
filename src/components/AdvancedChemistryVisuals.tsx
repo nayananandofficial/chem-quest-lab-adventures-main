@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 // import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 
+
 interface LiquidPhysicsProps {
   containerShape: 'cylinder' | 'sphere';
   liquidVolume: number;
@@ -10,7 +11,6 @@ interface LiquidPhysicsProps {
   density: number;
   position: [number, number, number];
   agitation: number;
-  volume: number;
 }
 
 export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
@@ -20,7 +20,6 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   density,
   position,
   agitation,
-  volume,
 }) => {
   const liquidRef = useRef<THREE.Mesh>(null);
   const [wavePhase, setWavePhase] = useState(0);
@@ -28,9 +27,9 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   // Memoize geometry creation - only recalculate when shape or volume changes
   const liquidGeometry = useMemo(() => {
     if (containerShape === 'cylinder') {
-      return <cylinderGeometry args={[0.4, 0.3, volume, 32]} />;
+      return <cylinderGeometry args={[0.4, 0.3, liquidVolume, 32]} />;
     } else {
-      return <sphereGeometry args={[0.3 * volume, 32, 32]} />;
+      return <sphereGeometry args={[0.3 * liquidVolume, 32, 32]} />;
     }
   }, [containerShape, liquidVolume]);
 
