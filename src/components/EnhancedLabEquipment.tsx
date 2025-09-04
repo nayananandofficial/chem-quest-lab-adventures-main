@@ -10,8 +10,7 @@ import {
 import { RealisticBeaker, RealisticFlask, RealisticBurner } from './AdvancedEquipmentModels';
 import { 
   TemperatureVisualization, 
-  PHIndicator, 
-  ReactionProgressBar, 
+  PHIndicator,
   EquipmentStateIndicator 
 } from './AdvancedChemistryVisuals';
 
@@ -40,9 +39,6 @@ interface EnhancedLabEquipmentProps {
   onChemicalAdd?: (equipmentId: string, chemical: string) => void;
   equipmentContents?: string[];
 }
-
-
-
 
 export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({ 
   selectedEquipment, 
@@ -267,34 +263,27 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         />
       )}
 
-      {activeEffects.heatGlow && (
+      {/* (orange sphere) */}
+      {/* {activeEffects.heatGlow && (
         <HeatGlowEffect
           position={[0, 0, 0]}
           effectType="heat_glow"
           intensity={0.5}
           duration={15000}
         />
-      )}
+      )} */}
 
-      {/* Advanced Chemistry Visualizations */}
-      <TemperatureVisualization
+      {/* Advanced Chemistry Visualizations (orange sphere)*/} 
+      {/* <TemperatureVisualization
         temperature={equipment.temperature}
         position={[0.8, 0.5, 0]}
         equipmentType={equipmentType}
-      />
+      /> */}
 
       {equipment.contents.length > 0 && (
         <PHIndicator
           pH={equipment.pH}
           position={[-0.8, 0.5, 0]}
-        />
-      )}
-
-      {equipment.reactionType && equipment.reactionProgress > 0 && (
-        <ReactionProgressBar
-          progress={equipment.reactionProgress}
-          reactionType={equipment.reactionType}
-          position={[0, 1.5, 0]}
         />
       )}
 
