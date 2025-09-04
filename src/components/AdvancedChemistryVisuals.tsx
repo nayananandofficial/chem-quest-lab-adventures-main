@@ -304,7 +304,7 @@ export const ReactionProgressBar: React.FC<ReactionProgressBarProps> = ({
   const vType = typeof reactionType === 'string' && reactionType.trim() ? reactionType : 'Reaction';
   return (
     <Html position={position} center>
-      {/* <div className="bg-black/90 text-white p-2 rounded">
+      <div className="bg-black/90 text-white p-2 rounded">
         <div className="text-xs font-bold mb-1">{vType}</div>
         <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
           <div 
@@ -313,7 +313,7 @@ export const ReactionProgressBar: React.FC<ReactionProgressBarProps> = ({
           />
         </div>
         <div className="text-xs mt-1">{(vProgress * 100).toFixed(0)}% Complete</div>
-      </div> */}
+      </div>
     </Html>
   );
 };
