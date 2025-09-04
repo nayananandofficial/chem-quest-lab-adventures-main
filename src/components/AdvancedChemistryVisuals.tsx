@@ -10,6 +10,7 @@ interface LiquidPhysicsProps {
   density: number;
   position: [number, number, number];
   agitation: number;
+  volume: number;
 }
 
 export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
@@ -18,7 +19,8 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   viscosity,
   density,
   position,
-  agitation
+  agitation,
+  volume,
 }) => {
   const liquidRef = useRef<THREE.Mesh>(null);
   const [wavePhase, setWavePhase] = useState(0);
@@ -26,9 +28,9 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   // Memoize geometry creation - only recalculate when shape or volume changes
   const liquidGeometry = useMemo(() => {
     if (containerShape === 'cylinder') {
-      return <cylinderGeometry args={[0.4, 0.3, vVolume, 32]} />;
+      return <cylinderGeometry args={[0.4, 0.3, volume, 32]} />;
     } else {
-      return <sphereGeometry args={[0.3 * vVolume, 32, 32]} />;
+      return <sphereGeometry args={[0.3 * volume, 32, 32]} />;
     }
   }, [containerShape, liquidVolume]);
 
@@ -37,8 +39,8 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
     <meshPhysicalMaterial 
       color="#87CEEB"
       transparent
-      opacity={0.8 - vViscosity * 0.2}
-      roughness={vViscosity}
+      opacity={0.8 - viscosity * 0.2}
+      roughness={viscosity}
       metalness={0.1}
       clearcoat={1.0}
       clearcoatRoughness={0.1}
@@ -283,32 +285,35 @@ export const PHIndicator: React.FC<PHIndicatorProps> = ({ pH, position }) => {
   );
 };
 
-interface ReactionProgressBarProps {
-  progress: number;
-  reactionType: string;
-  position: [number, number, number];
-}
+// interface ReactionProgressBarProps {
+//   progress: number;
+//   reactionType: string;
+//   position: [number, number, number];
+// }
 
 // export const ReactionProgressBar: React.FC<ReactionProgressBarProps> = ({
 //   progress,
 //   reactionType,
 //   position
 // }) => {
+//   const vProgress = clamp(isFiniteNumber(progress) ? progress : 0, 0, 1);
+//   const vType = typeof reactionType === 'string' && reactionType.trim() ? reactionType : 'Reaction';
 //   return (
 //     <Html position={position} center>
 //       <div className="bg-black/90 text-white p-2 rounded">
-//         <div className="text-xs font-bold mb-1">{reactionType}</div>
+//         <div className="text-xs font-bold mb-1">{vType}</div>
 //         <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
 //           <div 
 //             className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-300"
-//             style={{ width: `${progress * 100}%` }}
+//             style={{ width: `${vProgress * 100}%` }}
 //           />
 //         </div>
-//         <div className="text-xs mt-1">{(progress * 100).toFixed(0)}% Complete</div>
+//         <div className="text-xs mt-1">{(vProgress * 100).toFixed(0)}% Complete</div>
 //       </div>
 //     </Html>
 //   );
 // };
+
 
 interface EquipmentStateIndicatorProps {
   isSelected: boolean;
