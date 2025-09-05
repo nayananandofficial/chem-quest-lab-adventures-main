@@ -4,7 +4,10 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Minimal helpers for safe values
-
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const isFiniteNumber = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
+const isVec3 = (p: unknown): p is [number, number, number] =>
+  Array.isArray(p) && p.length === 3 && p.every((n) => isFiniteNumber(n));
 
 interface LiquidPhysicsProps {
   containerShape: 'cylinder' | 'sphere';
