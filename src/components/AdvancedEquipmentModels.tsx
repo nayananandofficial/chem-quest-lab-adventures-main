@@ -16,9 +16,11 @@ import { GLTF } from 'three-stdlib';
 type GLTFResult = GLTF & {
   nodes: {
     lab_beaker_a_0: THREE.Mesh
+    lab_erlenmeyer_a_0: THREE.Mesh
   }
   materials: {
     lab_beaker_a: THREE.MeshPhysicalMaterial
+    lab_erlenmeyer_a: THREE.MeshPhysicalMaterial
   }
 };
 
@@ -161,7 +163,7 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
             <meshStandardMaterial
               color="#60A5FA"
               transparent
-              opacity={0.7}
+              opacity={0.2}
               roughness={0.1}
             />
           )}
@@ -261,32 +263,61 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
   );
 };
 
+
 export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
   position,
-  contents,
+  contents = [],
   isSelected,
   temperature,
+  isHeated,
   onClick,
 }) => {
   const flaskRef = useRef<THREE.Group>(null);
+  const liquidRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
-  const liquidHeight = Math.min(contents.length * 0.15, 0.5);
+  // Load Erlenmeyer flask from GLTF
+  const { nodes, materials } = useGLTF("/models/beaker/scene.gltf") as any;
 
-  const getLiquidColor = () => {
-    if (contents.length === 0) return "#87CEEB";
+  // Calculate liquid height (flask is taller, so adjust scaling)
+  const liquidHeight = Math.min(contents.length * 0.2, 0.8);
 
-    const colorMap: { [key: string]: string } = {
-      "Hydrochloric Acid": "#FFD700",
-      "Sodium Hydroxide": "#87CEEB",
-      "Copper Sulfate": "#4169E1",
-      "Sulfuric Acid": "#FFFF99",
-      "Iron Oxide": "#CD853F",
-    };
+const getLiquidColor = () => {
+  if (contents.length === 0) return "#87CEEB";
 
-    return colorMap[contents[0]] || "#87CEEB";
+  const colorMap: { [key: string]: THREE.Color } = {
+    "Hydrochloric Acid": new THREE.Color("#FFD700"),
+    HCl: new THREE.Color("#FFD700"),
+    "Sodium Hydroxide": new THREE.Color("#87CEEB"),
+    NaOH: new THREE.Color("#87CEEB"),
+    "Copper Sulfate": new THREE.Color("#4169E1"),
+    CuSO4: new THREE.Color("#4169E1"),
+    "Sulfuric Acid": new THREE.Color("#FFFF99"),
+    H2SO4: new THREE.Color("#FFFF99"),
+    "Iron Oxide": new THREE.Color("#CD853F"),
+    Fe2O3: new THREE.Color("#CD853F"),
+    "Potassium Permanganate": new THREE.Color("#800080"),
+    KMnO4: new THREE.Color("#800080"),
   };
 
+  if (contents.length === 1) {
+    return colorMap[contents[0]] || new THREE.Color("#87CEEB");
+  }
+
+  // Mix multiple
+  let mixedColor = new THREE.Color("#87CEEB");
+  contents.forEach((chemical) => {
+    const chemColor = colorMap[chemical];
+    if (chemColor) {
+      mixedColor.lerp(chemColor, 0.5);
+    }
+  });
+
+  return mixedColor;
+};
+
+
+  // Gentle wiggle when selected
   useFrame((state) => {
     if (flaskRef.current && isSelected) {
       flaskRef.current.rotation.y =
@@ -295,79 +326,58 @@ export const RealisticFlask: React.FC<AdvancedEquipmentProps> = ({
   });
 
   return (
-    <group ref={flaskRef} position={[0, -0.4, 0]}>
-      {/* Flask bottom - more realistic round bottom */}
-      <mesh
-        onClick={onClick}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-      >
-        <sphereGeometry args={[0.35, 32, 32]} />
-        <meshPhysicalMaterial
-          color={isSelected ? "#F59E0B" : "#FEF3C7"}
-          transparent
-          opacity={0.8}
-          roughness={0.1}
-          transmission={0.8}
-          thickness={0.1}
-        />
-      </mesh>
-
-      {/* Flask neck - longer and more elegant */}
-      <mesh position={[0, 0.6, 0]}>
-        <cylinderGeometry args={[0.12, 0.15, 1.0, 32]} />
-        <meshPhysicalMaterial
-          color={isSelected ? "#F59E0B" : "#FEF3C7"}
-          transparent
-          opacity={0.8}
-          roughness={0.1}
-          transmission={0.8}
-        />
-      </mesh>
-
-      {/* Liquid in flask */}
-      {liquidHeight > 0 && (
-        <group position={[0, -0, 0]}>
-          {/* Cylinder body (flat top) */}
-          <mesh rotation={[Math.PI, 0, 0]}>
-            <sphereGeometry args={[0.34, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
-            <meshPhysicalMaterial
-              color={getLiquidColor()}
-              opacity={0.9}
+    <group ref={flaskRef} position={[0, -0.75, 0]}>
+      {/* Flask mesh */}
+      <group scale={0.1} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh
+          geometry={nodes.lab_erlenmeyer_a_0.geometry}
+          material={materials.lab_erlenmeyer_a}
+          onClick={onClick}
+          onPointerOver={() => setHovered(true)}
+          onPointerOut={() => setHovered(false)}
+          castShadow
+          receiveShadow
+        >
+          {isSelected && (
+            <meshStandardMaterial
+              color="#60A5FA"
+              transparent
+              opacity={0.25}
+              roughness={0.15}
             />
-          </mesh>
+          )}
+        </mesh>
+      </group>
 
-          {/* Hemisphere bottom */}
-        </group>
+      {liquidHeight > 0 && (
+  <mesh
+    ref={liquidRef}
+    position={[0, 0.04 + liquidHeight / 2, 0]}
+    scale={[1, 1, 1]}
+  >
+    {/* base radius larger, top radius smaller */}
+    <cylinderGeometry args={[0.23, 0.50, liquidHeight, 32]} />
+    <meshPhysicalMaterial
+      color={getLiquidColor()}
+      opacity={0.85}
+      transparent
+      roughness={0.1}
+      transmission={0.9}
+      thickness={0.6}
+      ior={1.33}
+    />
+  </mesh>
+)}
+
+      {/* Optional floating UI label */}
+      {hovered && (
+        <Html position={[0, 1.2, 0]} center>
+          <div className="bg-black/70 text-white px-2 py-1 rounded text-xs">
+            Flask: {contents.join(", ") || "Empty"} <br />
+            Temp: {temperature}°C
+          </div>
+        </Html>
       )}
-
-      {/* Volume markings */}
-      {/* {[0.1, 0.2, 0.3].map((height, index) => (
-        <React.Fragment key={index}>
-          <mesh position={[0.36, -0.2 + height, 0]}>
-            <boxGeometry args={[0.02, 0.01, 0.08]} />
-            <meshStandardMaterial color="#666666" />
-          </mesh>
-          <Text
-            position={[0.5, -0.2 + height, 0]}
-            fontSize={0.06}
-            color="#666666"
-            anchorX="left"
-            anchorY="middle"
-          >
-            {(index + 1) * 50}mL
-          </Text>
-        </React.Fragment>
-      ))} */}
-
-      {/* <Html position={[0, 1.4, 0]} center>
-        <div className="bg-black/80 text-white p-2 rounded text-xs min-w-32 text-center">
-          <div className="font-bold">Erlenmeyer Flask</div>
-          <div>Volume: 250mL</div>
-          <div>Contents: {contents.length}</div>
-          <div>Temp: {temperature}°C</div>
-        </div>
-      </Html> */}
     </group>
   );
 };
