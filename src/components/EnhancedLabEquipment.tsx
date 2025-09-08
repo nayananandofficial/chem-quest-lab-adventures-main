@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   BubblingEffect, 
@@ -7,13 +6,12 @@ import {
   HeatGlowEffect, 
   ColorTransitionEffect 
 } from './EnhancedChemicalEffects';
-import { RealisticBeaker, RealisticFlask, RealisticBurner } from './AdvancedEquipmentModels';
+import { RealisticBeaker, RealisticFlask, RealisticBurner, BuretteWithStand } from './AdvancedEquipmentModels';
 import { 
   TemperatureVisualization, 
   PHIndicator,
   EquipmentStateIndicator 
 } from './AdvancedChemistryVisuals';
-
 
 interface Equipment {
   type: string;
@@ -26,6 +24,10 @@ interface Equipment {
   mixingLevel: number;
   reactionProgress: number;
   reactionType: string | null;
+  // Added for burette
+  volume?: number;
+  concentration?: number;
+  isDispensing?: boolean;
 }
 
 interface EnhancedLabEquipmentProps {
@@ -61,7 +63,11 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
     pH: 7.0,
     mixingLevel: 0.0,
     reactionProgress: 0.0,
-    reactionType: null
+    reactionType: null,
+    // Burette-specific properties
+    volume: equipmentType.includes('burette') ? 50 : undefined,
+    concentration: 0.1,
+    isDispensing: false
   });
 
   const [activeEffects, setActiveEffects] = useState<{
@@ -89,8 +95,8 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
       // Calculate pH based on contents
       newEquipment.pH = calculatePH(equipmentContents);
       
-      // Determine if heating should occur
-      newEquipment.isHeated = shouldHeat(equipmentContents);
+      // Determine if heating should occur (burettes typically don't get heated)
+      newEquipment.isHeated = shouldHeat(equipmentContents) && !equipmentType.includes('burette');
       
       // Calculate temperature based on reactions and heating
       newEquipment.temperature = calculateTemperature(equipmentContents, newEquipment.isHeated);
@@ -105,7 +111,7 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
 
     // Trigger visual effects based on contents and reactions
     updateVisualEffects(equipmentContents);
-  }, [equipmentContents]);
+  }, [equipmentContents, equipmentType]);
 
   const calculatePH = (contents: string[]): number => {
     if (contents.length === 0) return 7.0;
@@ -118,7 +124,9 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
       'Sodium Hydroxide': 13.0,
       'NaOH': 13.0,
       'Copper Sulfate': 4.0,
-      'CuSO4': 4.0
+      'CuSO4': 4.0,
+      'Potassium Permanganate': 2.0,
+      'KMnO4': 2.0
     };
 
     let totalPH = 0;
@@ -165,6 +173,10 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
       return { type: 'Metal Displacement', progress: 0.6 };
     }
     
+    if (contents.includes('Potassium Permanganate')) {
+      return { type: 'Redox Titration', progress: 0.7 };
+    }
+    
     if (contents.length >= 2) {
       return { type: 'Chemical Mixing', progress: 0.4 };
     }
@@ -192,6 +204,11 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
     if (onChemicalAdd) {
       onChemicalAdd(equipmentId, chemical);
     }
+  };
+
+  const handleBuretteDispense = () => {
+    setEquipment(prev => ({ ...prev, isDispensing: !prev.isDispensing }));
+    console.log(`Burette ${equipmentId} dispensing toggled`);
   };
 
   const isSelected = selectedEquipment === equipmentId;
@@ -235,8 +252,22 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         />
       )}
 
-      {/* Advanced Visual Effects */}
-      {activeEffects.bubbling && (
+      {/* 🎯 ADDED: Burette with Stand */}
+      {equipmentType.includes('burette') && (
+        <BuretteWithStand
+          position={[0, 0, 0]}
+          contents={equipment.contents}
+          isSelected={isSelected}
+          temperature={equipment.temperature}
+          onClick={handleEquipmentClick}
+          onChemicalAdd={(chemical: string) => onChemicalAdd?.(equipmentId, chemical)}
+          // Burette-specific props
+          scale={[1.2, 1.2, 1.2]}
+        />
+      )}
+
+      {/* Advanced Visual Effects - Modified for burette compatibility */}
+      {activeEffects.bubbling && !equipmentType.includes('burette') && (
         <BubblingEffect
           position={[0, 0.2, 0]}
           effectType="bubbling"
@@ -245,7 +276,7 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         />
       )}
 
-      {activeEffects.steam && (
+      {activeEffects.steam && !equipmentType.includes('burette') && (
         <SteamEffect
           position={[0, 0.5, 0]}
           effectType="steam"
@@ -263,27 +294,23 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         />
       )}
 
-      {/* (orange sphere) */}
-      {/* {activeEffects.heatGlow && (
-        <HeatGlowEffect
-          position={[0, 0, 0]}
-          effectType="heat_glow"
-          intensity={0.5}
-          duration={15000}
-        />
-      )} */}
+      {/* Burette-specific dispensing effect */}
+      {equipmentType.includes('burette') && equipment.isDispensing && (
+        <mesh position={[0, -1.5, 0]}>
+          <cylinderGeometry args={[0.01, 0.01, 0.3, 8]} />
+          <meshStandardMaterial 
+            color={equipment.contents.length > 0 ? "#4169E1" : "#87CEEB"}
+            transparent 
+            opacity={0.7} 
+          />
+        </mesh>
+      )}
 
-      {/* Advanced Chemistry Visualizations (orange sphere)*/} 
-      {/* <TemperatureVisualization
-        temperature={equipment.temperature}
-        position={[0.8, 0.5, 0]}
-        equipmentType={equipmentType}
-      /> */}
-
+      {/* Advanced Chemistry Visualizations - Adjusted positions for burette */}
       {equipment.contents.length > 0 && (
         <PHIndicator
           pH={equipment.pH}
-          position={[-0.8, 0.5, 0]}
+          position={equipmentType.includes('burette') ? [-1.2, 1.5, 0] : [-0.8, 0.5, 0]}
         />
       )}
 
@@ -291,8 +318,32 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         isSelected={isSelected}
         isHeated={equipment.isHeated}
         hasReaction={equipment.reactionType !== null}
-        position={[0, -0.8, 0]}
+        position={equipmentType.includes('burette') ? [0, -2, 0] : [0, -0.8, 0]}
       />
+
+      {/* Burette-specific volume indicator */}
+      {equipmentType.includes('burette') && equipment.volume && (
+        <mesh position={[1.2, 1.5, 0]}>
+          <planeGeometry args={[0.3, 0.1]} />
+          <meshBasicMaterial color="#000000" transparent opacity={0.8} />
+          {/* You would add text here showing volume */}
+        </mesh>
+      )}
     </group>
   );
 };
+
+// Usage example in your main lab component:
+/*
+<EnhancedLabEquipment
+  selectedEquipment={selectedEquipment}
+  setSelectedEquipment={setSelectedEquipment}
+  reactions={reactions}
+  setReactions={setReactions}
+  position={[4, 0, 0]}
+  equipmentType="burette"
+  equipmentId="burette_1"
+  onChemicalAdd={handleChemicalAdd}
+  equipmentContents={["Sodium Hydroxide", "NaOH"]}
+/>
+*/
