@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Beaker, FlaskConical, TestTube, Flame, Thermometer, Scale, Search } from 'lucide-react';
+import { Beaker, FlaskConical, TestTube, Flame, Pipette, Search } from 'lucide-react';
 import { useDragDrop } from './DragDropProvider';
 
 interface EquipmentItem {
   id: string;
   name: string;
-  type: 'beaker' | 'flask' | 'test-tube' | 'burner' | 'thermometer' | 'scale';
+  type: 'beaker' | 'flask' | 'test-tube' | 'burner' | 'burette';
   description: string;
   icon: React.ComponentType<any>;
   available: number;
@@ -76,21 +76,11 @@ const equipmentLibrary: EquipmentItem[] = [
     level: 2
   },
   {
-    id: 'thermometer',
-    name: 'Thermometer',
-    type: 'thermometer',
-    description: 'Digital thermometer for temperature measurement',
-    icon: Thermometer,
-    available: 3,
-    inUse: 0,
-    level: 2
-  },
-  {
-    id: 'analytical-scale',
-    name: 'Analytical Scale',
-    type: 'scale',
-    description: 'Precision scale for measuring chemicals',
-    icon: Scale,
+    id: 'burette',
+    name: 'Burette',
+    type: 'burette',
+    description: 'Precision instrument for titration',
+    icon: Pipette,
     available: 1,
     inUse: 0,
     level: 2

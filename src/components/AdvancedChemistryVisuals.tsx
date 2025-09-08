@@ -24,7 +24,7 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   viscosity,
   density,
   position,
-  agitation
+  agitation,
 }) => {
   const liquidRef = useRef<THREE.Mesh>(null);
   const [wavePhase, setWavePhase] = useState(0);
@@ -38,9 +38,9 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   // Memoize geometry creation - only recalculate when shape or volume changes
   const liquidGeometry = useMemo(() => {
     if (containerShape === 'cylinder') {
-      return <cylinderGeometry args={[0.4, 0.3, vVolume, 32]} />;
+      return <cylinderGeometry args={[0.4, 0.3, liquidVolume, 32]} />;
     } else {
-      return <sphereGeometry args={[0.3 * vVolume, 32, 32]} />;
+      return <sphereGeometry args={[0.3 * liquidVolume, 32, 32]} />;
     }
   }, [containerShape, vVolume]);
 
@@ -49,8 +49,8 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
     <meshPhysicalMaterial 
       color="#87CEEB"
       transparent
-      opacity={0.8 - vViscosity * 0.2}
-      roughness={vViscosity}
+      opacity={0.8 - viscosity * 0.2}
+      roughness={viscosity}
       metalness={0.1}
       clearcoat={1.0}
       clearcoatRoughness={0.1}
@@ -328,6 +328,7 @@ export const ReactionProgressBar: React.FC<ReactionProgressBarProps> = ({
     </Html>
   );
 };
+
 
 interface EquipmentStateIndicatorProps {
   isSelected: boolean;

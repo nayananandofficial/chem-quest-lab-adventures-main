@@ -1,0 +1,11 @@
+Model Information:
+* title:	Burette stand
+* source:	https://sketchfab.com/3d-models/burette-stand-9d204d9be6744ea1a491bd152c61228f
+* author:	VeeRuby Technologies Pvt Ltd (https://sketchfab.com/veerubyinc)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Burette stand" (https://sketchfab.com/3d-models/burette-stand-9d204d9be6744ea1a491bd152c61228f) by VeeRuby Technologies Pvt Ltd (https://sketchfab.com/veerubyinc) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
