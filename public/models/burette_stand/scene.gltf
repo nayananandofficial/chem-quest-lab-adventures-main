@@ -1,0 +1,553 @@
+{
+  "accessors": [
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 597,
+      "max": [
+        -8.87204360961914,
+        52.438236236572266,
+        -0.6394996643066406
+      ],
+      "min": [
+        -10.678828239440918,
+        3.620271682739258,
+        -2.399900436401367
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 7164,
+      "componentType": 5126,
+      "count": 597,
+      "max": [
+        0.9999998807907104,
+        0.9999997615814209,
+        1.0
+      ],
+      "min": [
+        -0.9999998807907104,
+        -0.9999997615814209,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 597,
+      "max": [
+        1.083299994468689,
+        1.0
+      ],
+      "min": [
+        0.07519999891519547,
+        0.0
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "componentType": 5125,
+      "count": 3456,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 14328,
+      "componentType": 5126,
+      "count": 6736,
+      "max": [
+        11.285344123840332,
+        4.053872108459473,
+        6.924600124359131
+      ],
+      "min": [
+        -13.628264427185059,
+        0.002285003662109375,
+        -9.964000701904297
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 95160,
+      "componentType": 5126,
+      "count": 6736,
+      "max": [
+        0.9999997019767761,
+        0.9999997615814209,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -0.9999997615814209,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 4776,
+      "componentType": 5126,
+      "count": 6736,
+      "max": [
+        1.0,
+        1.0
+      ],
+      "min": [
+        0.0,
+        0.0
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 13824,
+      "componentType": 5125,
+      "count": 38016,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 175992,
+      "componentType": 5126,
+      "count": 898,
+      "max": [
+        -8.451005935668945,
+        35.17140197753906,
+        2.6921119689941406
+      ],
+      "min": [
+        -10.444103240966797,
+        31.876230239868164,
+        -1.6501673460006714
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 186768,
+      "componentType": 5126,
+      "count": 898,
+      "max": [
+        0.9952652454376221,
+        0.9952648878097534,
+        0.9999997019767761
+      ],
+      "min": [
+        -0.9952652454376221,
+        -0.9952812790870667,
+        -0.9999997019767761
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 58664,
+      "componentType": 5126,
+      "count": 898,
+      "max": [
+        0.916700005531311,
+        0.9632999897003174
+      ],
+      "min": [
+        0.583299994468689,
+        0.03669999912381172
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 165888,
+      "componentType": 5125,
+      "count": 5376,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 197544,
+      "componentType": 5126,
+      "count": 898,
+      "max": [
+        -2.2939329147338867,
+        34.03824234008789,
+        1.5507903099060059
+      ],
+      "min": [
+        -4.632579803466797,
+        33.009334564208984,
+        -1.3838855028152466
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 208320,
+      "componentType": 5126,
+      "count": 898,
+      "max": [
+        0.9999166131019592,
+        0.999915599822998,
+        0.9999997019767761
+      ],
+      "min": [
+        -0.9999166131019592,
+        -0.999915599822998,
+        -0.9999997019767761
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 65848,
+      "componentType": 5126,
+      "count": 898,
+      "max": [
+        0.916700005531311,
+        0.9632999897003174
+      ],
+      "min": [
+        0.583299994468689,
+        0.03669999912381172
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 187392,
+      "componentType": 5125,
+      "count": 5376,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 219096,
+      "componentType": 5126,
+      "count": 170,
+      "max": [
+        2.6362357139587402,
+        34.46526336669922,
+        0.22282731533050537
+      ],
+      "min": [
+        -12.884868621826172,
+        31.803632736206055,
+        -3.350493907928467
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 221136,
+      "componentType": 5126,
+      "count": 170,
+      "max": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -1.0,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 73032,
+      "componentType": 5126,
+      "count": 170,
+      "max": [
+        1.083299994468689,
+        1.0
+      ],
+      "min": [
+        0.08330000191926956,
+        0.0
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 208896,
+      "componentType": 5125,
+      "count": 420,
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "extras": {
+      "author": "VeeRuby Technologies Pvt Ltd (https://sketchfab.com/veerubyinc)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/burette-stand-9d204d9be6744ea1a491bd152c61228f",
+      "title": "Burette stand"
+    },
+    "generator": "Sketchfab-15.0.0",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 210576,
+      "name": "floatBufferViews",
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 74392,
+      "byteOffset": 210576,
+      "byteStride": 8,
+      "name": "floatBufferViews",
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 223176,
+      "byteOffset": 284968,
+      "byteStride": 12,
+      "name": "floatBufferViews",
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 508144,
+      "uri": "gltf.bin"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "Chrom",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.885,
+          0.708885,
+          0.708885,
+          1.0
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.11364424947776863
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "Black",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.013,
+          0.013,
+          0.013,
+          1.0
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.11364424947776863
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "polySurface1_Chrom_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "polySurface2_Black_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 5,
+            "POSITION": 4,
+            "TEXCOORD_0": 6
+          },
+          "indices": 7,
+          "material": 1,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "polySurface5_Black_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 9,
+            "POSITION": 8,
+            "TEXCOORD_0": 10
+          },
+          "indices": 11,
+          "material": 1,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "polySurface7_Black_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 13,
+            "POSITION": 12,
+            "TEXCOORD_0": 14
+          },
+          "indices": 15,
+          "material": 1,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "pCube4_Chrom_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 17,
+            "POSITION": 16,
+            "TEXCOORD_0": 18
+          },
+          "indices": 19,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.220446049250313e-16,
+        -1.0,
+        0.0,
+        0.0,
+        1.0,
+        2.220446049250313e-16,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "Sketchfab_model"
+    },
+    {
+      "children": [
+        2
+      ],
+      "matrix": [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0,
+        -0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "Burette stand.fbx"
+    },
+    {
+      "children": [
+        3
+      ],
+      "name": "RootNode"
+    },
+    {
+      "children": [
+        4,
+        6,
+        8,
+        10,
+        12
+      ],
+      "name": "Clamp_Stand"
+    },
+    {
+      "children": [
+        5
+      ],
+      "name": "polySurface1"
+    },
+    {
+      "mesh": 0,
+      "name": "polySurface1_Chrom_0"
+    },
+    {
+      "children": [
+        7
+      ],
+      "name": "polySurface2"
+    },
+    {
+      "mesh": 1,
+      "name": "polySurface2_Black_0"
+    },
+    {
+      "children": [
+        9
+      ],
+      "name": "polySurface5"
+    },
+    {
+      "mesh": 2,
+      "name": "polySurface5_Black_0"
+    },
+    {
+      "children": [
+        11
+      ],
+      "name": "polySurface7"
+    },
+    {
+      "mesh": 3,
+      "name": "polySurface7_Black_0"
+    },
+    {
+      "children": [
+        13
+      ],
+      "name": "pCube4"
+    },
+    {
+      "mesh": 4,
+      "name": "pCube4_Chrom_0"
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Sketchfab_Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ]
+}

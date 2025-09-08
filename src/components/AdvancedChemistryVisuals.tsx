@@ -1,7 +1,13 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
+
+// Minimal helpers for safe values
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const isFiniteNumber = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
+const isVec3 = (p: unknown): p is [number, number, number] =>
+  Array.isArray(p) && p.length === 3 && p.every((n) => isFiniteNumber(n));
 
 interface LiquidPhysicsProps {
   containerShape: 'cylinder' | 'sphere';
@@ -18,48 +24,63 @@ export const LiquidPhysics: React.FC<LiquidPhysicsProps> = ({
   viscosity,
   density,
   position,
-  agitation
+  agitation,
 }) => {
   const liquidRef = useRef<THREE.Mesh>(null);
   const [wavePhase, setWavePhase] = useState(0);
 
-  useFrame((state) => {
-    if (liquidRef.current) {
-      // Simulate liquid movement based on agitation
-      const time = state.clock.elapsedTime;
-      const waveHeight = agitation * 0.02;
-      
-      if (containerShape === 'cylinder') {
-        liquidRef.current.position.y = position[1] + Math.sin(time * 2 + wavePhase) * waveHeight;
-      }
-      
-      // Surface tension effects
-      if (agitation > 0.5) {
-        liquidRef.current.rotation.z = Math.sin(time * 4) * agitation * 0.1;
-      }
-    }
-  });
+  // Normalize critical inputs
+  const vViscosity = clamp(isFiniteNumber(viscosity) ? viscosity : 0.5, 0, 1);
+  const vAgitation = clamp(isFiniteNumber(agitation) ? agitation : 0, 0, 1);
+  const vVolume = Math.max(0.001, isFiniteNumber(liquidVolume) ? liquidVolume : 0.5);
+  const vPosition = isVec3(position) ? position : [0, 0, 0] as [number, number, number];
 
-  const getLiquidGeometry = () => {
+  // Memoize geometry creation - only recalculate when shape or volume changes
+  const liquidGeometry = useMemo(() => {
     if (containerShape === 'cylinder') {
       return <cylinderGeometry args={[0.4, 0.3, liquidVolume, 32]} />;
     } else {
       return <sphereGeometry args={[0.3 * liquidVolume, 32, 32]} />;
     }
-  };
+  }, [containerShape, vVolume]);
+
+  // Memoize material creation - only recalculate when viscosity changes
+  const liquidMaterial = useMemo(() => (
+    <meshPhysicalMaterial 
+      color="#87CEEB"
+      transparent
+      opacity={0.8 - viscosity * 0.2}
+      roughness={viscosity}
+      metalness={0.1}
+      clearcoat={1.0}
+      clearcoatRoughness={0.1}
+    />
+  ), [vViscosity]);
+
+  // Memoize wave calculation function - only recreate when agitation changes
+  const calculateWavePosition = useCallback((time: number) => {
+    const waveHeight = vAgitation * 0.02;
+    return vPosition[1] + Math.sin(time * 2 + wavePhase) * waveHeight;
+  }, [vAgitation, vPosition, wavePhase]);
+
+  useFrame((state) => {
+    if (liquidRef.current) {
+      const time = state.clock.elapsedTime;
+      
+      if (containerShape === 'cylinder') {
+        liquidRef.current.position.y = calculateWavePosition(time);
+      }
+      
+      if (vAgitation > 0.5) {
+        liquidRef.current.rotation.z = Math.sin(time * 4) * vAgitation * 0.1;
+      }
+    }
+  });
 
   return (
-    <mesh ref={liquidRef} position={position}>
-      {getLiquidGeometry()}
-      <meshPhysicalMaterial 
-        color="#87CEEB"
-        transparent
-        opacity={0.8 - viscosity * 0.2}
-        roughness={viscosity}
-        metalness={0.1}
-        clearcoat={1.0}
-        clearcoatRoughness={0.1}
-      />
+    <mesh ref={liquidRef} position={vPosition}>
+      {liquidGeometry}
+      {liquidMaterial}
     </mesh>
   );
 };
@@ -75,6 +96,7 @@ export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> =
   position,
   equipmentType
 }) => {
+  const t = isFiniteNumber(temperature) ? temperature : 20;
   const getTemperatureColor = (temp: number) => {
     if (temp < 25) return '#0088FF'; // Cold - blue
     if (temp < 50) return '#00FFFF'; // Cool - cyan
@@ -90,13 +112,13 @@ export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> =
   return (
     <group position={position}>
       {/* Temperature glow effect */}
-      {temperature > 30 && (
+      {t > 30 && (
         <mesh>
           <sphereGeometry args={[0.6, 16, 16]} />
           <meshStandardMaterial 
-            color={getTemperatureColor(temperature)}
-            emissive={getTemperatureColor(temperature)}
-            emissiveIntensity={getTemperatureIntensity(temperature) * 0.3}
+            color={getTemperatureColor(t)}
+            emissive={getTemperatureColor(t)}
+            emissiveIntensity={getTemperatureIntensity(t) * 0.3}
             transparent
             opacity={0.2}
           />
@@ -104,14 +126,14 @@ export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> =
       )}
 
       {/* Steam particles for hot liquids */}
-      {temperature > 80 && (
-        <SteamParticles temperature={temperature} />
+      {t > 80 && (
+        <SteamParticles temperature={t} />
       )}
 
       {/* Temperature display */}
-      <Html position={[0.8, 0, 0]} center>
+      {/* <Html position={[0.8, 0, 0]} center>
         <div className="bg-black/80 text-white px-2 py-1 rounded text-xs">
-          <div className="font-mono">{temperature.toFixed(1)}°C</div>
+          <div className="font-mono">{t.toFixed(1)}°C</div>
           <div 
             className="w-16 h-2 border border-white/50 rounded overflow-hidden"
             style={{ background: 'linear-gradient(to right, #0088FF, #FFFF00, #FF0000)' }}
@@ -119,18 +141,18 @@ export const TemperatureVisualization: React.FC<TemperatureVisualizationProps> =
             <div 
               className="h-full bg-white/80"
               style={{ 
-                width: `${Math.min((temperature / 120) * 100, 100)}%`,
+                width: `${Math.min((t / 120) * 100, 100)}%`,
                 transition: 'width 0.5s ease'
               }}
             />
           </div>
         </div>
-      </Html>
+      </Html> */}
     </group>
   );
 };
 
-const SteamParticles: React.FC<{ temperature: number }> = ({ temperature }) => {
+export const SteamParticles: React.FC<{ temperature: number }> = ({ temperature }) => {
   const [particles, setParticles] = useState<{ 
     id: number; 
     position: THREE.Vector3; 
@@ -139,14 +161,17 @@ const SteamParticles: React.FC<{ temperature: number }> = ({ temperature }) => {
   }[]>([]);
 
   useEffect(() => {
+    const safeTemp = isFiniteNumber(temperature) ? temperature : 20;
+    const steamRate = Math.max(0, (safeTemp - 80) / 20);
+    if (steamRate <= 0) {
+      setParticles([]);
+      return;
+    }
+
     let particleId = 0;
-    const steamRate = (temperature - 80) / 20; // More steam at higher temps
-    
     const interval = setInterval(() => {
       setParticles(prev => {
         const newParticles = [...prev];
-        
-        // Add new steam particles
         if (Math.random() < steamRate) {
           newParticles.push({
             id: particleId++,
@@ -163,20 +188,19 @@ const SteamParticles: React.FC<{ temperature: number }> = ({ temperature }) => {
             life: 1.0
           });
         }
-        
-        // Update existing particles
         return newParticles
           .map(particle => ({
             ...particle,
             position: particle.position.clone().add(particle.velocity),
             life: particle.life - 0.02
           }))
-          .filter(particle => particle.life > 0);
+          .filter(particle => particle.life > 0)
+          .slice(-100);
       });
     }, 100);
 
     return () => clearInterval(interval);
-  }, [temperature]);
+  }, []); // No dependencies needed since we use fixed steam rate
 
   return (
     <group>
@@ -206,9 +230,10 @@ export const ConcentrationGradient: React.FC<ConcentrationGradientProps> = ({
   position
 }) => {
   const gradientRef = useRef<THREE.Mesh>(null);
+  const vMix = clamp(isFiniteNumber(mixingLevel) ? mixingLevel : 0, 0, 1);
 
   useFrame((state) => {
-    if (gradientRef.current && mixingLevel < 1.0) {
+    if (gradientRef.current && vMix < 1.0) {
       // Show unmixed layers
       gradientRef.current.rotation.y = state.clock.elapsedTime * 0.5;
     }
@@ -235,6 +260,7 @@ interface PHIndicatorProps {
 }
 
 export const PHIndicator: React.FC<PHIndicatorProps> = ({ pH, position }) => {
+  const vPH = clamp(isFiniteNumber(pH) ? pH : 7, 0, 14);
   const getPHColor = (phValue: number) => {
     if (phValue < 2) return '#FF0000'; // Strong acid - red
     if (phValue < 4) return '#FF6600'; // Acid - orange
@@ -255,21 +281,21 @@ export const PHIndicator: React.FC<PHIndicatorProps> = ({ pH, position }) => {
 
   return (
     <group position={position}>
-      <mesh>
+      {/* <mesh>
         <sphereGeometry args={[0.1, 16, 16]} />
         <meshStandardMaterial 
-          color={getPHColor(pH)}
-          emissive={getPHColor(pH)}
+          color={getPHColor(vPH)}
+          emissive={getPHColor(vPH)}
           emissiveIntensity={0.2}
         />
-      </mesh>
+      </mesh> */}
       
-      <Html position={[0, 0.3, 0]} center>
+      {/* <Html position={[0, 0.3, 0]} center>
         <div className="bg-black/90 text-white px-2 py-1 rounded text-xs text-center">
-          <div className="font-bold">pH {pH.toFixed(1)}</div>
-          <div className="text-xs">{getPHLabel(pH)}</div>
+          <div className="font-bold">pH {vPH.toFixed(1)}</div>
+          <div className="text-xs">{getPHLabel(vPH)}</div>
         </div>
-      </Html>
+      </Html> */}
     </group>
   );
 };
@@ -285,21 +311,24 @@ export const ReactionProgressBar: React.FC<ReactionProgressBarProps> = ({
   reactionType,
   position
 }) => {
+  const vProgress = clamp(isFiniteNumber(progress) ? progress : 0, 0, 1);
+  const vType = typeof reactionType === 'string' && reactionType.trim() ? reactionType : 'Reaction';
   return (
     <Html position={position} center>
       <div className="bg-black/90 text-white p-2 rounded">
-        <div className="text-xs font-bold mb-1">{reactionType}</div>
+        <div className="text-xs font-bold mb-1">{vType}</div>
         <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
           <div 
             className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-300"
-            style={{ width: `${progress * 100}%` }}
+            style={{ width: `${vProgress * 100}%` }}
           />
         </div>
-        <div className="text-xs mt-1">{(progress * 100).toFixed(0)}% Complete</div>
+        <div className="text-xs mt-1">{(vProgress * 100).toFixed(0)}% Complete</div>
       </div>
     </Html>
   );
 };
+
 
 interface EquipmentStateIndicatorProps {
   isSelected: boolean;
@@ -316,20 +345,9 @@ export const EquipmentStateIndicator: React.FC<EquipmentStateIndicatorProps> = (
 }) => {
   return (
     <group position={position}>
-      {/* Selection indicator */}
-      {isSelected && (
-        <mesh>
-          <torusGeometry args={[0.6, 0.05, 8, 32]} />
-          <meshStandardMaterial 
-            color="#00FFFF"
-            emissive="#004444"
-            emissiveIntensity={0.5}
-          />
-        </mesh>
-      )}
 
       {/* Heat indicator */}
-      {isHeated && (
+      {/* {isHeated && (
         <mesh position={[0, 0.8, 0]}>
           <sphereGeometry args={[0.05, 8, 8]} />
           <meshStandardMaterial 
@@ -338,10 +356,10 @@ export const EquipmentStateIndicator: React.FC<EquipmentStateIndicatorProps> = (
             emissiveIntensity={0.8}
           />
         </mesh>
-      )}
+      )} */}
 
       {/* Reaction indicator */}
-      {hasReaction && (
+      {/* {hasReaction && (
         <mesh position={[0, 1.0, 0]}>
           <octahedronGeometry args={[0.08, 0]} />
           <meshStandardMaterial 
@@ -350,7 +368,7 @@ export const EquipmentStateIndicator: React.FC<EquipmentStateIndicatorProps> = (
             emissiveIntensity={0.6}
           />
         </mesh>
-      )}
+      )} */}
     </group>
   );
 };

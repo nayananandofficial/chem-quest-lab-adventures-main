@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Text, Html } from '@react-three/drei';
 import { useDragDrop } from './DragDropProvider';
 import * as THREE from 'three';
+import { TemperatureVisualization } from './AdvancedChemistryVisuals';
 
 interface GridPosition {
   x: number;
@@ -15,11 +16,15 @@ interface GridPosition {
 interface EnhancedLabTableProps {
   onEquipmentPlace: (equipmentId: string, position: [number, number, number]) => void;
   placedEquipment: { id: string; position: [number, number, number]; type: string }[];
+  equipmentName?: string;
+  temperature?: number;
 }
 
 export const EnhancedLabTable: React.FC<EnhancedLabTableProps> = ({ 
   onEquipmentPlace, 
-  placedEquipment 
+  placedEquipment, 
+  equipmentName = 'Lab Equipment',
+  temperature = 25
 }) => {
   const tableRef = useRef<THREE.Group>(null);
   const [hoveredGrid, setHoveredGrid] = useState<{ x: number; z: number } | null>(null);
@@ -276,7 +281,7 @@ export const EnhancedLabTable: React.FC<EnhancedLabTableProps> = ({
       )}
 
       {/* Dynamic Instructions */}
-      {isDragging && (
+      {/* {isDragging && (
         <Html position={[0, 1.2, tableDepth/2 + 0.5]} center>
           <div className="bg-black/90 text-white px-3 py-2 rounded-lg text-sm">
             <div className="font-bold text-green-400">🎯 Smart Placement Active</div>
@@ -285,16 +290,15 @@ export const EnhancedLabTable: React.FC<EnhancedLabTableProps> = ({
             <div>• Auto-snap to grid</div>
           </div>
         </Html>
-      )}
+      )} */}
 
       {/* Enhanced Table Information */}
-      <Html position={[0, -0.7, tableDepth/2 + 0.4]} center>
+      {/* <Html position={[0, -0.7, tableDepth/2 + 0.4]} center>
         <div className="bg-black/80 text-white px-2 py-1 rounded text-xs text-center">
-          <div className="font-bold">Enhanced Lab Workbench</div>
-          <div>{gridSize.width}×{gridSize.depth} Smart Grid • Auto-Snap • Collision Detection</div>
-          <div className="text-gray-300">Placed: {placedEquipment.length}/{gridSize.width * gridSize.depth}</div>
+          <div className="font-bold">{equipmentName}</div>
+          <div className="text-gray-300">Temperature: {temperature}°C</div>
         </div>
-      </Html>
+      </Html> */}
 
       {/* Table surface details */}
       <mesh position={[0, 0.11, 0]}>
