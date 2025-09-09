@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ScienceLab from "./pages/ScienceLab";
 import NotFound from "./pages/NotFound";
+import MyLessons from "./pages/MyLessons";
+import PeriodicTable from "./pages/PeriodicTable";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +31,21 @@ const App = () => (
                 <ProtectedRoute>
                   <ScienceLab />
                 </ProtectedRoute>
-              } 
+              }
+               
+            />
+            <Route path="/lessons"
+            element={
+              <ProtectedRoute>
+                  <MyLessons />
+                </ProtectedRoute>
+            }
+            />
+            <Route 
+              path="/periodic-table" 
+              element={
+                <PeriodicTable />
+              }
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
