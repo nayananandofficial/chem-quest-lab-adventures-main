@@ -40,35 +40,28 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await signIn(loginForm.email, loginForm.password);
-      
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast({
-            title: "Login Failed",
-            description: "Invalid email or password. Please check your credentials.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Login Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      } else {
-        toast({
+      await signIn(loginForm.email, loginForm.password);
+      toast({
           title: "Welcome back!",
           description: "Successfully logged in to Science Lab.",
         });
-        navigate('/lab');
-      }
-    } catch (error: any) {
-      toast({
-        title: "Login Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      navigate('/lab');
+    } catch (error) {
+      console.log(error);
+      if(error.message === 'No account found with this email'){
+        toast({
+          title: error.message,
+          description: "Please check your email or sign up for a new account.",
+          variant: "destructive",
+        })
+      }else{
+        toast({
+          title: "Login Failed",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
+      } 
+      navigate('/auth');
     } finally {
       setLoading(false);
     }
@@ -99,42 +92,33 @@ const Auth = () => {
     }
 
     try {
-      const { error } = await signUp(
+      await signUp(
         signupForm.email, 
         signupForm.password,
-        {
-          full_name: signupForm.fullName,
-          username: signupForm.username
-        }
+        signupForm.fullName,
+        signupForm.username
       );
-      
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast({
-            title: "Signup Failed",
-            description: "An account with this email already exists. Please sign in instead.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Signup Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      } else {
-        toast({
-          title: "Account Created!",
-          description: "Welcome to Science Lab! You can now start experimenting.",
-        });
-        navigate('/lab');
-      }
-    } catch (error: any) {
       toast({
+        title: "Account Created!",
+        description: "Welcome to Science Lab! You can now start experimenting.",
+      });
+      navigate('/lab');
+    } catch (error: any) {
+      if(error.message === 'Email already in use'){
+        toast({
+        title: error.message,
+        description: "Please use a different email address.",
+        variant: "destructive",
+      });
+      }else{
+        toast({
         title: "Signup Failed",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+      }
+      console.log(error);
+      navigate('/auth');
     } finally {
       setLoading(false);
     }
