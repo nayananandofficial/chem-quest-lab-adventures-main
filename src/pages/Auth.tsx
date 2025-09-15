@@ -12,7 +12,7 @@ import { Beaker, FlaskConical } from 'lucide-react';
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, signInWithGoogle} = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -54,6 +54,12 @@ const Auth = () => {
           description: "Please check your email or sign up for a new account.",
           variant: "destructive",
         })
+      }else if(error.message === 'Please sign in with Google'){
+        toast({
+          title: error.message,
+          description: "You previously signed up with Google. Please use the Google sign-in option.",
+          variant: "destructive",
+        })
       }else{
         toast({
           title: "Login Failed",
@@ -70,17 +76,6 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    if (signupForm.password !== signupForm.confirmPassword) {
-      toast({
-        title: "Signup Failed",
-        description: "Passwords do not match.",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
     if (signupForm.password.length < 6) {
       toast({
         title: "Signup Failed",
@@ -96,7 +91,6 @@ const Auth = () => {
         signupForm.email, 
         signupForm.password,
         signupForm.fullName,
-        signupForm.username
       );
       toast({
         title: "Account Created!",
@@ -124,6 +118,34 @@ const Auth = () => {
     }
   };
 
+  const handleSignUpWithGoogle = async () => {
+    setLoading(true);
+    try{
+      await signInWithGoogle();
+      toast({
+        title: "Welcome!",
+        description: "Successfully signed in with Google.",
+      });
+      navigate('/lab');
+    }catch(error:any){
+      if(error.code==="auth/account-exists-with-different-credential"){
+        toast({
+          title: "Email already in use",
+          description: "Please use a different email address.",
+          variant: "destructive",
+        })
+      }else{
+        toast({
+          title: "Google Sign-In Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      navigate('/auth');
+    }finally{
+      setLoading(false);
+    }
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -174,29 +196,29 @@ const Auth = () => {
                   {loading ? "Signing In..." : "Sign In"}
                 </Button>
               </form>
+              <div className="flex items-center justify-center my-2 text-center">
+                <hr className="flex-1 mr-1 border-gray-400" />
+                <span className="text-gray-950 py-6">or</span>
+                <hr className="flex-1 ml-1 border-gray-400"/>
+              </div>
+              <div>
+                <Button className="w-full" onClick={handleSignUpWithGoogle} >
+                <img src="google-icon.svg" alt="Google" width={24} height={24} />
+                Sign up with Google
+              </Button>
+              </div>
             </TabsContent>
             
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Label htmlFor="signup-name">Name</Label>
                   <Input
                     id="signup-name"
                     type="text"
                     placeholder="Enter your full name"
                     value={signupForm.fullName}
                     onChange={(e) => setSignupForm({...signupForm, fullName: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-username">Username</Label>
-                  <Input
-                    id="signup-username"
-                    type="text"
-                    placeholder="Choose a username"
-                    value={signupForm.username}
-                    onChange={(e) => setSignupForm({...signupForm, username: e.target.value})}
                     required
                   />
                 </div>
@@ -222,21 +244,22 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm">Confirm Password</Label>
-                  <Input
-                    id="signup-confirm"
-                    type="password"
-                    placeholder="Confirm your password"
-                    value={signupForm.confirmPassword}
-                    onChange={(e) => setSignupForm({...signupForm, confirmPassword: e.target.value})}
-                    required
-                  />
-                </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creating Account..." : "Create Account"}
                 </Button>
               </form>
+              <div className="flex items-center justify-center my-2 text-center">
+                <hr className="flex-1 mr-1 border-gray-400" />
+                <span className="text-gray-950 py-6">or</span>
+                <hr className="flex-1 ml-1 border-gray-400"/>
+              </div>
+              <div>
+                <Button className="w-full" onClick={handleSignUpWithGoogle} >
+                <img src="google-icon.svg" alt="Google" width={24} height={24} />
+                Sign up with Google
+              </Button>
+              </div>
+              
             </TabsContent>
           </Tabs>
         </CardContent>
