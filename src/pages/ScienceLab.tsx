@@ -18,7 +18,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Beaker, FlaskConical, Award, Zap, Star } from "lucide-react";
+import { Beaker, FlaskConical, Award, Zap, Star, Settings, ChevronDown, Play, RotateCcw, Save, Layers } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PlacedEquipment {
   id: string;
@@ -149,146 +155,111 @@ const ScienceLab = () => {
   };
 
   return (
-    <div className="h-screen flex bg-background">
+    <div className="h-screen flex flex-col bg-background">
       <DragDropProvider>
-        {/* Left Panel */}
-        <div
-          className={`transition-all duration-300 overflow-hidden ${
-            leftCollapsed ? "w-8" : "w-96"
-          } h-full flex flex-col relative`}
-        >
-          <button
-            onClick={() => setLeftCollapsed(!leftCollapsed)}
-            className="absolute top-0 -right-0 z-10 bg-card border rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-muted"
-          >
-            {leftCollapsed ? "➡️" : "⬅️"}
-          </button>
-
-          {!leftCollapsed && (
-            <>
-              <div className="bg-card/95 backdrop-blur-sm p-4 border-b shadow-sm">
-                <h3 className="text-lg font-semibold mb-3">
-                  Enhanced Lab Controls
-                </h3>
-                <div className="space-y-2">
-                  <Button
-                    className="w-full text-sm"
-                    variant="outline"
-                    onClick={resetLab}
-                  >
-                    🔄 Reset Lab
-                  </Button>
-                  <Button
-                    className="w-full text-sm"
-                    variant="secondary"
-                    onClick={startExperiment}
-                  >
-                    🧪 Start Experiment
-                  </Button>
-                  <Button
-                    className="w-full text-sm"
-                    variant="outline"
-                    onClick={saveExperiment}
-                    disabled={!user}
-                  >
-                    💾 Save Progress
-                  </Button>
-                </div>
+        {/* Top Bar */}
+        <header className="flex items-center justify-between px-6 py-3 bg-card border-b shadow-sm">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <Beaker className="h-6 w-6 text-primary" />
+              <div>
+                <h1 className="text-base font-bold">Virtual Chemistry Lab</h1>
+                <p className="text-xs text-muted-foreground">Professional Workspace</p>
               </div>
-              <div className="flex-1 min-h-0">
-                <EquipmentRack
-                  onEquipmentSelect={() => {}}
-                  position={[0, 0, 0]}
-                />
-              </div>
-            </>
-          )}
-        </div>
+            </div>
 
-        {/* Main 3D Scene */}
-        <div className="flex-1 relative min-w-0">
-          <Canvas
-            camera={{ position: [0, 8, 12], fov: 60 }}
-            shadows
-            className="w-full h-full"
-          >
-            <ambientLight intensity={0.4} />
-            <directionalLight position={[10, 10, 5]} castShadow />
-            <OrbitControls enableZoom enableRotate />
-            <Environment preset="studio" />
-            <EnhancedLabTable
-              onEquipmentPlace={handleEquipmentPlace}
-              placedEquipment={placedEquipment}
-            />
-            {placedEquipment.map((equipment) => (
+            {/* Lab Control Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-1 px-3 py-1.5">
+                  <Settings className="w-4 h-4" />
+                  Lab Control
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={startExperiment}>
+                  <Play className="w-4 h-4 mr-2" /> Start
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={resetLab}>
+                  <RotateCcw className="w-4 h-4 mr-2" /> Reset
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={saveExperiment}>
+                  <Save className="w-4 h-4 mr-2" /> Save
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Tools Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-1 px-3 py-1.5">
+                  <Layers className="w-4 h-4" />
+                  Tools
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem>Results</DropdownMenuItem>
+                <DropdownMenuItem>Education</DropdownMenuItem>
+                <DropdownMenuItem>Equipment</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <UserMenu />
+        </header>
+
+        <div className="flex flex-1 min-h-0">
+          {/* Left Panel collapsed / empty */}
+          <div className="w-8 flex-shrink-0" />
+
+          {/* 3D Workspace */}
+          <div className="flex-1 relative min-w-0">
+            <Canvas camera={{ position: [0, 8, 12], fov: 60 }} shadows className="w-full h-full">
+              <ambientLight intensity={0.4} />
+              <directionalLight position={[10, 10, 5]} castShadow />
+              <OrbitControls enableZoom enableRotate />
+              <Environment preset="studio" />
+              <EnhancedLabTable onEquipmentPlace={handleEquipmentPlace} placedEquipment={placedEquipment} />
+              {placedEquipment.map((equipment) => (
               <EnhancedLabEquipment
                 key={equipment.id}
                 selectedEquipment={selectedEquipment}
                 setSelectedEquipment={setSelectedEquipment}
-                reactions={reactions}
-                setReactions={setReactions}
+                reactions={reactions}          // ✅ Add this
+                setReactions={setReactions}    // ✅ Add this
                 position={equipment.position}
                 equipmentType={equipment.type}
                 equipmentId={equipment.id}
-                onChemicalAdd={handleChemicalAdd}
-                equipmentContents={getEquipmentContents(equipment.id)}
+                equipmentContents={equipment.contents}
               />
             ))}
-            <Grid
-              args={[30, 30]}
-              position={[0, -0.5, 0]}
-              cellSize={1}
-              cellThickness={0.5}
-              cellColor="#6B7280"
-              sectionSize={5}
-              sectionThickness={1}
-              sectionColor="#374151"
-              fadeDistance={25}
-              fadeStrength={1}
-            />
-          </Canvas>
-          <div className="absolute top-4 right-4">
-            <UserMenu />
+
+              <Grid args={[30, 30]} position={[0, -0.5, 0]} cellSize={1} cellThickness={0.5} cellColor="#6B7280" sectionSize={5} sectionThickness={1} sectionColor="#374151" fadeDistance={25} fadeStrength={1} />
+            </Canvas>
           </div>
-        </div>
 
-        {/* Right Panel */}
-        <div
-          className={`transition-all duration-300 overflow-hidden ${
-            rightCollapsed ? "w-8" : "w-96"
-          } bg-card border-l border-border h-full relative`}
-        >
-          <button
-            onClick={() => setRightCollapsed(!rightCollapsed)}
-            className="absolute top-0 -left-0 z-10 bg-card border rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-muted"
-          >
-            {rightCollapsed ? "⬅️" : "➡️"}
-          </button>
+          {/* Right Panel - Tabs */}
+          <div className="w-96 bg-card border-l border-border flex flex-col h-full">
+            <Tabs defaultValue="chemicals" className=" flex flex-col h-full">
+              <TabsList className="grid grid-cols-2">
+                <TabsTrigger value="chemicals">Chemicals</TabsTrigger>
+                <TabsTrigger value="equipment">Equipment</TabsTrigger>
+              </TabsList>
 
-          {!rightCollapsed && (
-            <>
-              <div className="p-4 border-b border-border">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Beaker className="h-5 w-5" />
-                  Enhanced Science Lab
-                </h2>
-              </div>
-              <Tabs defaultValue="chemicals" className="h-full">
-                <TabsList className="grid w-full grid-cols-3 m-4">
-                  <TabsTrigger value="chemicals">Chemicals</TabsTrigger>
-                  <TabsTrigger value="equipment">Equipment</TabsTrigger>
-                  <TabsTrigger value="results">Results</TabsTrigger>
-                </TabsList>
-                <TabsContent value="chemicals" className="px-4 pb-4">
-                  <EnhancedChemicalLibrary
-                    onChemicalSelect={handleChemicalSelect}
-                    selectedEquipment={selectedEquipment}
-                  />
-                </TabsContent>
-                {/* other tabs unchanged */}
-              </Tabs>
-            </>
-          )}
+              <TabsContent value="chemicals" className="p-4 flex-1 overflow-y-auto">
+                <EnhancedChemicalLibrary
+                  onChemicalSelect={handleChemicalSelect}
+                  selectedEquipment={selectedEquipment}
+                />
+              </TabsContent>
+
+              <TabsContent value="equipment" className="p-4 flex-1 overflow-y-auto">
+                <EquipmentRack onEquipmentSelect={() => {}} position={[0, 0, 0]} />
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </DragDropProvider>
     </div>
