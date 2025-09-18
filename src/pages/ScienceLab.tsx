@@ -25,7 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
+import axios from "axios";
 interface PlacedEquipment {
   id: string;
   position: [number, number, number];
