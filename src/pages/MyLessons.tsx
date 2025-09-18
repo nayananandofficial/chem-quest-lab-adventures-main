@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +16,7 @@ import {
   Award,
   TrendingUp
 } from 'lucide-react';
-
+import axios from 'axios';
 interface Lesson {
   id: string;
   title: string;
@@ -56,13 +55,12 @@ const MyLessons = () => {
 
   const fetchLessons = async () => {
     try {
-      const { data, error } = await supabase
-        .from('lessons')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setLessons(data || []);
+      const response = await axios.get('http://localhost:3000/api/lessons');
+      if(response.status !== 200){
+        throw new Error("Failed to fetch lessons");
+      }
+      const data = response.data;
+      setLessons(data);
     } catch (error) {
       console.error('Error fetching lessons:', error);
       toast({
@@ -77,15 +75,11 @@ const MyLessons = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('user_lesson_progress')
-        .select(`
-          *,
-          lessons (*)
-        `)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      const response = await axios.get(`http://localhost:3000/api/lessons/${user.id}`);
+      if(response.status !== 200){
+        throw new Error("Failed to fetch user progress");
+      }
+      const data = response.data;
       setUserProgress(data || []);
     } catch (error) {
       console.error('Error fetching user progress:', error);
@@ -108,16 +102,13 @@ const MyLessons = () => {
       const existingProgress = userProgress.find(p => p.lesson_id === lesson.id);
       
       if (!existingProgress) {
-        const { error } = await supabase
-          .from('user_lesson_progress')
-          .insert({
-            user_id: user.id,
-            lesson_id: lesson.id,
-            status: 'in_progress',
-            progress_percentage: 10
-          });
-
-        if (error) throw error;
+        const response = await axios.post('http://localhost:3000/api/lessons/start', {
+          user_id: user.id,
+          lesson_id: lesson.id,
+        });  
+        if(response.status !== 200){
+          throw new Error("Failed to start lesson");
+        }
         
         toast({
           title: "Lesson Started!",
@@ -147,19 +138,13 @@ const MyLessons = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('user_lesson_progress')
-        .upsert({
-          user_id: user.id,
-          lesson_id: lessonId,
-          status: 'completed',
-          progress_percentage: 100,
-          completed_at: new Date().toISOString(),
-          score: 85 + Math.floor(Math.random() * 15) // Random score between 85-100
-        });
-
-      if (error) throw error;
-      
+      const response = await axios.put('http://localhost:3000/api/lessons/complete', {
+        user_id: user.id,
+        lesson_id: lessonId,
+      });
+      if(response.status !== 200){
+        throw new Error("Failed to complete lesson");
+      }
       toast({
         title: "Lesson Completed! 🎉",
         description: "Great job! You've successfully completed this lesson.",
@@ -168,6 +153,11 @@ const MyLessons = () => {
       fetchUserProgress();
     } catch (error) {
       console.error('Error completing lesson:', error);
+      toast({
+        title: error.message,
+        description: "Failed to complete lesson.",
+        variant: "destructive"
+      })
     }
   };
 

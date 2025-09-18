@@ -17,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Beaker, FlaskConical, Award, Zap, Star, Settings, ChevronDown, Play, RotateCcw, Save, Layers } from "lucide-react";
 import {
   DropdownMenu,
@@ -25,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
+import axios from "axios";
 interface PlacedEquipment {
   id: string;
   position: [number, number, number];
@@ -84,15 +83,13 @@ const ScienceLab = () => {
         score: reactions.length * 10,
       };
 
-      const { data, error } = await supabase
-        .from("user_experiments")
-        .insert(experimentData)
-        .select();
+      const response = await axios.post('http://localhost:3000/api/add-experiment', {experimentData:experimentData}
+      );
 
-      if (error) {
+      if (response.status !== 200) {
         toast({
           title: "Save Failed",
-          description: error.message,
+          description: response.data.message || "Failed to save experiment.",
           variant: "destructive",
         });
       } else {
