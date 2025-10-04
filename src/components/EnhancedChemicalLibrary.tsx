@@ -43,7 +43,7 @@ export const EnhancedChemicalLibrary: React.FC<EnhancedChemicalLibraryProps> = (
  useEffect(() => {
     const fetchChemicals = async () => {
         try{
-          const response =  await axios.get('http://localhost:3000/api/chemicals');
+          const response =  await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/chemicals`);
           if(response.status !== 200){
             throw new Error("Failed to fetch chemicals");
           }
