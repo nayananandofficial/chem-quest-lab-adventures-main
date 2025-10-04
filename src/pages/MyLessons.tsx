@@ -55,7 +55,7 @@ const MyLessons = () => {
 
   const fetchLessons = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/lessons');
+      const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/lessons`);
       if(response.status !== 200){
         throw new Error("Failed to fetch lessons");
       }
@@ -75,7 +75,7 @@ const MyLessons = () => {
     if (!user) return;
 
     try {
-      const response = await axios.get(`http://localhost:3000/api/lessons/${user.id}`);
+      const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/lessons/${user.id}`);
       if(response.status !== 200){
         throw new Error("Failed to fetch user progress");
       }
@@ -102,7 +102,7 @@ const MyLessons = () => {
       const existingProgress = userProgress.find(p => p.lesson_id === lesson.id);
       
       if (!existingProgress) {
-        const response = await axios.post('http://localhost:3000/api/lessons/start', {
+        const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/lessons/start`, {
           user_id: user.id,
           lesson_id: lesson.id,
         });  
@@ -138,7 +138,7 @@ const MyLessons = () => {
     if (!user) return;
 
     try {
-      const response = await axios.put('http://localhost:3000/api/lessons/complete', {
+      const response = await axios.put(`${import.meta.env.VITE_SERVER_URL}/api/lessons/complete`, {
         user_id: user.id,
         lesson_id: lessonId,
       });
