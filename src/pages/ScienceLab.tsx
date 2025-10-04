@@ -213,7 +213,7 @@ const ScienceLab = () => {
 
           {/* 3D Workspace */}
           <div className="flex-1 relative min-w-0">
-            <Canvas camera={{ position: [0, 8, 12], fov: 60 }} shadows className="w-full h-full">
+            <Canvas camera={{ position: [0, 8, 22], fov: 25 }} shadows className="w-full h-full">
               <ambientLight intensity={0.4} />
               <directionalLight position={[10, 10, 5]} castShadow />
               <OrbitControls enableZoom enableRotate />

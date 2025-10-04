@@ -10,8 +10,16 @@ interface GridPosition {
   z: number;
   occupied: boolean;
   equipmentId?: string;
+  // base snap point (table surface) as well as optional stacked snap points above placed equipment
   snapPoint: [number, number, number];
+  stackedSnapPoints?: [number, number, number][];
 }
+
+// Utility: compute a stacked snap point above a given base snap point. Exported for use by systems that create stack targets.
+export const computeStackedSnap = (base: [number, number, number], level: number = 1): [number, number, number] => {
+  const yOffsetPerLevel = 0.35; // vertical gap per stacked equipment
+  return [base[0], base[1] + yOffsetPerLevel * level, base[2]];
+};
 
 interface EnhancedLabTableProps {
   onEquipmentPlace: (equipmentId: string, position: [number, number, number]) => void;
@@ -33,7 +41,7 @@ export const EnhancedLabTable: React.FC<EnhancedLabTableProps> = ({
   const { draggedItem, isDragging, setIsDragging, setDraggedItem } = useDragDrop();
 
   // Enhanced grid system with snap points
-  const gridSize = { width: 8, depth: 6 };
+  const gridSize = { width: 16, depth: 4 };
   const cellSize = 1.0;
   const tableWidth = gridSize.width * cellSize;
   const tableDepth = gridSize.depth * cellSize;
@@ -48,58 +56,84 @@ export const EnhancedLabTable: React.FC<EnhancedLabTableProps> = ({
           x: worldX,
           z: worldZ,
           occupied: false,
-          snapPoint: [worldX, 0.85, worldZ]
+          snapPoint: [worldX, 0.85, worldZ],
+          stackedSnapPoints: []
         });
       }
     }
     return positions;
   });
 
+  // Find closest available snap point. This now considers stacked snap points (on top of placed equipment)
   const getClosestSnapPoint = (position: [number, number, number]): [number, number, number] => {
     let closestDistance = Infinity;
     let closestPoint: [number, number, number] = position;
 
     gridPositions.forEach(gridPos => {
-      const distance = Math.sqrt(
-        Math.pow(position[0] - gridPos.snapPoint[0], 2) +
-        Math.pow(position[2] - gridPos.snapPoint[2], 2)
-      );
-      
-      if (distance < closestDistance && !gridPos.occupied) {
-        closestDistance = distance;
+      // consider base snap point first
+      const baseDistance = Math.hypot(position[0] - gridPos.snapPoint[0], position[2] - gridPos.snapPoint[2]);
+      if (baseDistance < closestDistance && !gridPos.occupied) {
+        closestDistance = baseDistance;
         closestPoint = gridPos.snapPoint;
+      }
+
+      // consider stacked snap points (if any) and pick the lowest available stack level
+      if (gridPos.stackedSnapPoints && gridPos.stackedSnapPoints.length > 0) {
+        for (const sp of gridPos.stackedSnapPoints) {
+          const sDist = Math.hypot(position[0] - sp[0], position[2] - sp[2]);
+          if (sDist < closestDistance) {
+            // don't require gridPos.occupied to be false here because stacked spots are intentionally occupied above
+            closestDistance = sDist;
+            closestPoint = sp;
+          }
+        }
       }
     });
 
     return closestPoint;
   };
 
+  // Utility: compute a stacked snap point above a given base snap point. Exported for use by systems that create stack targets.
+  
   const handleGridClick = (gridX: number, gridZ: number) => {
     if (draggedItem && isDragging) {
       const snapPoint = getClosestSnapPoint([gridX, 0, gridZ]);
       
-      // Check collision detection
-      const hasCollision = placedEquipment.some(eq => {
-        const distance = Math.sqrt(
-          Math.pow(eq.position[0] - snapPoint[0], 2) +
-          Math.pow(eq.position[2] - snapPoint[2], 2)
-        );
-        return distance < cellSize * 0.8;
+      // Check collision detection. Allow stacking: if snapPoint matches an existing placed equipment top,
+      // allow placement on top (different y). Otherwise reject if collision at same level.
+      const hasSameLevelCollision = placedEquipment.some(eq => {
+        const distance = Math.hypot(eq.position[0] - snapPoint[0], eq.position[2] - snapPoint[2]);
+        const verticalDifference = Math.abs((eq.position[1] || 0) - snapPoint[1]);
+        // collision only when near in XZ and same vertical level
+        return distance < cellSize * 0.8 && verticalDifference < 0.2;
       });
 
-      if (!hasCollision) {
+      if (!hasSameLevelCollision) {
         onEquipmentPlace(draggedItem.id, snapPoint);
-        
-        // Update grid occupancy
+
+        // If placed on table (base snap), mark occupancy; if placed on a stacked snap point, attach to that gridPos stacked list
         setGridPositions(prev => prev.map(pos => {
-          const distance = Math.sqrt(
-            Math.pow(pos.snapPoint[0] - snapPoint[0], 2) +
-            Math.pow(pos.snapPoint[2] - snapPoint[2], 2)
-          );
-          
-          if (distance < cellSize * 0.5) {
-            return { ...pos, occupied: true, equipmentId: draggedItem.id };
+          const baseDistance = Math.hypot(pos.snapPoint[0] - snapPoint[0], pos.snapPoint[2] - snapPoint[2]);
+          if (baseDistance < cellSize * 0.5 && Math.abs(pos.snapPoint[1] - snapPoint[1]) < 0.25) {
+            // mark base occupied and create an initial stacked snap point above the equipment for future stacking
+            const firstStack = computeStackedSnap(pos.snapPoint, 1);
+            const existingStack = pos.stackedSnapPoints ?? [];
+            return { ...pos, occupied: true, equipmentId: draggedItem.id, stackedSnapPoints: [...existingStack, firstStack] };
           }
+
+          // if snapPoint matches one of stacked points, remove it (now occupied) and leave a new stacked level above
+          if (pos.stackedSnapPoints) {
+            const ix = pos.stackedSnapPoints.findIndex(sp => Math.hypot(sp[0] - snapPoint[0], sp[2] - snapPoint[2]) < 0.01 && Math.abs(sp[1] - snapPoint[1]) < 0.01);
+            if (ix >= 0) {
+              // remove the used stacked snap and push a new one above it for future stacking
+              const newStack = [...pos.stackedSnapPoints];
+              newStack.splice(ix, 1);
+              // add a new higher snap point above
+              newStack.push([pos.snapPoint[0], snapPoint[1] + 0.35, pos.snapPoint[2]]);
+              return { ...pos, stackedSnapPoints: newStack };
+            }
+          }
+
           return pos;
         }));
       }
@@ -160,7 +194,7 @@ export const EnhancedLabTable: React.FC<EnhancedLabTableProps> = ({
       {/* Table edge trim */}
       <mesh position={[0, 0.08, 0]} receiveShadow>
         <boxGeometry args={[tableWidth + 0.1, 0.05, tableDepth + 0.1]} />
-        <meshStandardMaterial 
+        <meshStandardMaterial
           color="#654321"
           roughness={0.4}
           metalness={0.2}

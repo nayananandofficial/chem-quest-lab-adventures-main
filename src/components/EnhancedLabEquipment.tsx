@@ -213,6 +213,13 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
 
   const isSelected = selectedEquipment === equipmentId;
 
+  // Determine beaker model scale based on equipment type (supports identifiers like 'beaker-250ml' or 'beaker-500ml')
+  const beakerScale: [number, number, number] = equipmentType.includes('500')
+    ? [0.1, 0.1, 0.1]
+    : equipmentType.includes('250')
+    ? [0.08, 0.08, 0.08]
+    : [0.06, 0.06, 0.06];
+
   return (
     <group position={position}>
       {/* Render appropriate equipment type with advanced models */}
@@ -225,6 +232,7 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
           isHeated={equipment.isHeated}
           onClick={handleEquipmentClick}
           onChemicalAdd={(chemical: string) => onChemicalAdd?.(equipmentId, chemical)}
+          scale={beakerScale}
         />
       )}
 

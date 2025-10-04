@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Beaker, FlaskConical, TestTube, Flame, Pipette, Search } from 'lucide-react';
+import { Beaker, FlaskConical, Flame, Pipette, Search } from 'lucide-react';
 import { useDragDrop } from './DragDropProvider';
 
 interface EquipmentItem {
@@ -55,16 +55,7 @@ const equipmentLibrary: EquipmentItem[] = [
     inUse: 0,
     level: 1
   },
-  {
-    id: 'test-tube',
-    name: 'Test Tube',
-    type: 'test-tube',
-    description: 'Small tube for testing reactions',
-    icon: TestTube,
-    available: 10,
-    inUse: 0,
-    level: 2
-  },
+  // test-tube removed from sidebar by request
   {
     id: 'bunsen-burner',
     name: 'Bunsen Burner',
