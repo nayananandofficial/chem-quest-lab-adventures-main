@@ -25,17 +25,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import axios from "axios";
+
 interface PlacedEquipment {
   id: string;
   position: [number, number, number];
   type: string;
-  contents: string[];
+  contents: string[]; // Keep for backward compatibility
+  // New properties for volume system:
+  chemicalObjects: Array<{name: string; volume: number; color: string}>;
+  totalVolume: number;
 }
 
 const ScienceLab = () => {
-  const [selectedEquipment, setSelectedEquipment] = useState<string | null>(
-    null
-  );
+  const [selectedEquipment, setSelectedEquipment] = useState<string | null>(null);
   const [reactions, setReactions] = useState<any[]>([]);
   const [placedEquipment, setPlacedEquipment] = useState<PlacedEquipment[]>([]);
   const { user } = useAuth();
@@ -85,7 +87,6 @@ const ScienceLab = () => {
 
       const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/add-experiment`, {experimentData:experimentData}
       );
-
       if (response.status !== 200) {
         toast({
           title: "Save Failed",
@@ -107,15 +108,35 @@ const ScienceLab = () => {
     }
   };
 
-  const handleEquipmentPlace = (
-    equipmentId: string,
-    position: [number, number, number]
-  ) => {
+  const handleVolumeChange = (equipmentId: string, newTotalVolume: number) => {
+  setPlacedEquipment((prev) =>
+    prev.map((equipment) => {
+      if (equipment.id === equipmentId) {
+        return { 
+          ...equipment, 
+          totalVolume: newTotalVolume
+        };
+      }
+      return equipment;
+    })
+  );
+
+  toast({
+    title: "Volume Adjusted",
+    description: `Volume set to ${newTotalVolume}ml`,
+  });
+};
+
+
+
+  const handleEquipmentPlace = (equipmentId: string, position: [number, number, number]) => {
     const newEquipment: PlacedEquipment = {
       id: `${equipmentId}-${Date.now()}`,
       position,
       type: equipmentId,
-      contents: [],
+      contents: [], // Keep old format for compatibility
+      chemicalObjects: [], // New format for volume system
+      totalVolume: 0
     };
     setPlacedEquipment((prev) => [...prev, newEquipment]);
     toast({
@@ -124,27 +145,69 @@ const ScienceLab = () => {
     });
   };
 
-  const handleChemicalAdd = (equipmentId: string, chemicalName: string) => {
-    setPlacedEquipment((prev) =>
-      prev.map((equipment) =>
-        equipment.id === equipmentId
-          ? { ...equipment, contents: [...equipment.contents, chemicalName] }
-          : equipment
-      )
-    );
-  };
+  const handleChemicalAdd = (equipmentId: string, chemical: any, volume: number) => {
+  setPlacedEquipment((prev) =>
+    prev.map((equipment) => {
+      if (equipment.id === equipmentId) {
+        const newContents = [...equipment.contents, chemical.name];
+        
+        const newChemicalObject = {
+          name: chemical.name,
+          volume: volume,
+          color: chemical.color
+        };
+        const newChemicalObjects = [...equipment.chemicalObjects, newChemicalObject];
+        const newTotalVolume = newChemicalObjects.reduce((sum, chem) => sum + chem.volume, 0);
+        
+        return { 
+          ...equipment, 
+          contents: newContents,
+          chemicalObjects: newChemicalObjects,
+          totalVolume: newTotalVolume
+        };
+      }
+      return equipment;
+    })
+  );
+
+  toast({
+    title: "Chemical Added",
+    description: `${chemical.name} (${volume}ml) added to equipment.`,
+  });
+};
+
+// Update the EnhancedLabEquipment props to pass the enhanced handler
+{placedEquipment.map((equipment) => ( 
+  <EnhancedLabEquipment
+    key={equipment.id}
+    selectedEquipment={selectedEquipment}
+    setSelectedEquipment={setSelectedEquipment}
+    reactions={reactions}
+    setReactions={setReactions}
+    position={equipment.position}
+    equipmentType={equipment.type}
+    equipmentId={equipment.id}
+    equipmentContents={equipment.contents}
+    chemicalObjects={equipment.chemicalObjects}
+    totalVolume={equipment.totalVolume}
+    onVolumeChange={(newVolume) => handleVolumeChange(equipment.id, newVolume)}
+    onChemicalAdd={(chemical, volume) => handleChemicalAdd(equipment.id, chemical, volume)} // Updated
+  />
+))}
 
   const handleChemicalSelect = (chemical: any) => {
-    if (selectedEquipment) {
-      handleChemicalAdd(selectedEquipment, chemical.name);
-    } else {
-      toast({
-        title: "No Equipment Selected",
-        description: "Please select equipment first.",
-        variant: "destructive",
-      });
-    }
-  };
+  console.log('Chemical selected:', chemical); // Add this
+  console.log('Selected equipment:', selectedEquipment); // Add this
+  if (selectedEquipment) {
+    handleChemicalAdd(selectedEquipment, chemical.name, chemical.color);
+  } else {
+    toast({
+      title: "No Equipment Selected",
+      description: "Please select equipment first.",
+      variant: "destructive",
+    });
+  }
+};
 
   const getEquipmentContents = (equipmentId: string): string[] => {
     const equipment = placedEquipment.find((eq) => eq.id === equipmentId);
@@ -219,19 +282,24 @@ const ScienceLab = () => {
               <OrbitControls enableZoom enableRotate />
               <Environment preset="studio" />
               <EnhancedLabTable onEquipmentPlace={handleEquipmentPlace} placedEquipment={placedEquipment} />
+              
+              {/* Enhanced Lab Equipment with Volume System */}
               {placedEquipment.map((equipment) => (
-              <EnhancedLabEquipment
-                key={equipment.id}
-                selectedEquipment={selectedEquipment}
-                setSelectedEquipment={setSelectedEquipment}
-                reactions={reactions}          // ✅ Add this
-                setReactions={setReactions}    // ✅ Add this
-                position={equipment.position}
-                equipmentType={equipment.type}
-                equipmentId={equipment.id}
-                equipmentContents={equipment.contents}
-              />
-            ))}
+                <EnhancedLabEquipment
+                  key={equipment.id}
+                  selectedEquipment={selectedEquipment}
+                  setSelectedEquipment={setSelectedEquipment}
+                  reactions={reactions}
+                  setReactions={setReactions}
+                  position={equipment.position}
+                  equipmentType={equipment.type}
+                  equipmentId={equipment.id}
+                  equipmentContents={equipment.contents} // Keep for backward compatibility
+                  chemicalObjects={equipment.chemicalObjects} // New volume system
+                  totalVolume={equipment.totalVolume}
+                  onVolumeChange={(newVolume) => handleVolumeChange(equipment.id, newVolume)}
+                />
+              ))}
 
               <Grid args={[30, 30]} position={[0, -0.5, 0]} cellSize={1} cellThickness={0.5} cellColor="#6B7280" sectionSize={5} sectionThickness={1} sectionColor="#374151" fadeDistance={25} fadeStrength={1} />
             </Canvas>
