@@ -85,8 +85,8 @@ const ScienceLab = () => {
         score: reactions.length * 10,
       };
 
-      const response = await axios.post('http://localhost:3000/api/add-experiment', {experimentData:experimentData});
-
+      const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/add-experiment`, {experimentData:experimentData}
+      );
       if (response.status !== 200) {
         toast({
           title: "Save Failed",
