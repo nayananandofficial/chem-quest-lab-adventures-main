@@ -25,6 +25,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import axios from "axios";
+import useChemicalReactionEngine from '@/components/ChemicalReactionEngine';
+import useExperimentScoring, { ExperimentScorePanel } from '@/components/ExperimentScoring';
+import EducationalTooltips from '@/components/EducationalTooltips';
+import SafetyWarnings from '@/components/SafetyWarnings';
 
 interface PlacedEquipment {
   id: string;
@@ -46,10 +50,15 @@ const ScienceLab = () => {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
+  // Reaction engine and scoring
+  const reactionEngine = useChemicalReactionEngine();
+  const scoring = useExperimentScoring();
+
   const resetLab = () => {
     setReactions([]);
     setSelectedEquipment(null);
     setPlacedEquipment([]);
+    scoring.reset();
     toast({
       title: "Lab Reset",
       description: "All equipment and reactions have been cleared.",
@@ -186,12 +195,30 @@ const ScienceLab = () => {
 
         const newTotalVolume = newChemicalObjects.reduce((sum, chem) => sum + Number(chem.volume || 0), 0);
 
-        return {
+        const updated = {
           ...equipment,
           contents: newContents,
           chemicalObjects: newChemicalObjects,
           totalVolume: newTotalVolume,
         };
+        // After updating placedEquipment, run reaction detection and scoring
+        try {
+          const names = newChemicalObjects.map(c => c.name);
+          const reaction = reactionEngine.perform(names, 20);
+          if (reaction) {
+            setReactions(prev => [...prev, reaction]);
+            // Award scoring: chemical addition + successful reaction
+            scoring.award(15, `Added ${chemical.name}`);
+            scoring.award(50, `Reaction: ${reaction.name}`);
+            scoring.awardBadge(reaction.type || 'reaction');
+          } else {
+            scoring.award(15, `Added ${chemical.name}`);
+          }
+        } catch (e) {
+          console.error('Reaction engine error', e);
+        }
+
+        return updated;
       }
       return equipment;
     })
@@ -234,6 +261,10 @@ const ScienceLab = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      {/* Score panel and safety tooltips */}
+      <ExperimentScorePanel score={scoring.score} badges={scoring.badges} />
+      <SafetyWarnings alerts={reactionEngine.safetyAlerts} onClear={() => reactionEngine.clearSafetyAlerts()} />
+      <EducationalTooltips reaction={reactionEngine.activeReactions[reactionEngine.activeReactions.length - 1]} />
       <DragDropProvider>
         {/* Top Bar */}
         <header className="flex items-center justify-between px-6 py-3 bg-card border-b shadow-sm">
