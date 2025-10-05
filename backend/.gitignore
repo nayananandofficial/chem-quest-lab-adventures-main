@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 models/
+.env
 
 # Editor directories and files
 .vscode/*
