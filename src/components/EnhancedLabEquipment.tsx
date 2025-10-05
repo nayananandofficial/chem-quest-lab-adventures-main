@@ -37,7 +37,7 @@ interface EnhancedLabEquipmentProps {
   position: [number, number, number];
   equipmentType: string;
   equipmentId: string;
-  onChemicalAdd?: (chemical: any, volume: number) => void; // Updated signature
+  onChemicalAdd?: (chemical: any, volume: number) => void; // Parent binds equipmentId per-instance
   equipmentContents?: string[]; // Keep for backward compatibility
   // New props for volume system:
   chemicalObjects?: Array<{name: string; volume: number; color: string}>;
@@ -240,11 +240,22 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
     
     // Update equipment state with new chemical
     setEquipment(prev => {
-      const newContents = [...prev.contents, chemical.name];
+      const prevContents = Array.isArray(prev.contents) ? prev.contents : [];
+      const prevChemObjects = (prev as any).chemicalObjects && Array.isArray((prev as any).chemicalObjects) ? (prev as any).chemicalObjects : [];
+
+      const newContents = [...prevContents, chemical.name];
+      const newChemicalObj = { name: chemical.name, volume: Number(volume || 0), color: chemical.color || '#87CEEB' };
+      const newChemObjects = [...prevChemObjects, newChemicalObj];
+
+      const total = newChemObjects.reduce((s, c) => s + Number(c.volume || 0), 0);
+
       return {
         ...prev,
-        contents: newContents
-      };
+        contents: newContents,
+        // keep chemicalObjects on local equipment state for consistency with parent
+        chemicalObjects: newChemObjects as any,
+        totalVolume: total,
+      } as any;
     });
 
     // Call parent handler to update the chemical objects and total volume

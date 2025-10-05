@@ -37,6 +37,7 @@ const EnhancedLiquidRenderer: React.FC<EnhancedLiquidProps> = ({
   position,
   containerType,
 }) => {
+
   const liquidRef = useRef<THREE.Mesh>(null);
 
   // FIXED: Much more aggressive and continuous liquid height scaling
@@ -112,6 +113,15 @@ const EnhancedLiquidRenderer: React.FC<EnhancedLiquidProps> = ({
 
   // Material calculation
   const liquidMaterial = useMemo(() => {
+
+    console.log("Material Debug:", {
+      contents,
+      totalVolume,
+      contentsLength: contents.length,
+      firstChemical: contents[0]?.name,
+      firstChemicalColor: contents[0] ? getChemicalProperties(contents[0].name).color : 'none'
+    });
+
     if (contents.length === 0) {
       const defaultProps = getChemicalProperties("Water");
       return {
@@ -195,6 +205,8 @@ const EnhancedLiquidRenderer: React.FC<EnhancedLiquidProps> = ({
     liquidHeight,
     containerRadius,
     containerType,
+    finalLiquidColor: liquidMaterial.color.getHexString(),
+    contentsDebug: contents
   });
 
   return (
@@ -318,6 +330,7 @@ interface AdvancedEquipmentProps {
   onVolumeChange?: (newVolume: number) => void;
 }
 
+
 export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
   position,
   contents = [],
@@ -332,8 +345,15 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
   onChemicalAdd,
 }) => {
   const beakerRef = useRef<THREE.Group>(null);
-
   const specs = EQUIPMENT_SPECS[equipmentType];
+
+  console.log("Beaker Contents Debug:", {
+    contents,
+    totalVolume,
+    contentsCount: contents.length,
+    chemicalNames: contents.map(c => c.name),
+    chemicalColors: contents.map(c => c.color)
+  });
 
   // ENHANCED chemical library
   const availableChemicals = [
