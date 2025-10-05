@@ -24,7 +24,6 @@ interface Equipment {
   mixingLevel: number;
   reactionProgress: number;
   reactionType: string | null;
-  // Added for burette
   volume?: number;
   concentration?: number;
   isDispensing?: boolean;
@@ -38,8 +37,12 @@ interface EnhancedLabEquipmentProps {
   position: [number, number, number];
   equipmentType: string;
   equipmentId: string;
-  onChemicalAdd?: (equipmentId: string, chemical: string) => void;
-  equipmentContents?: string[];
+  onChemicalAdd?: (chemical: any, volume: number) => void; // Updated signature
+  equipmentContents?: string[]; // Keep for backward compatibility
+  // New props for volume system:
+  chemicalObjects?: Array<{name: string; volume: number; color: string}>;
+  totalVolume?: number;
+  onVolumeChange?: (newVolume: number) => void;
 }
 
 export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({ 
@@ -51,7 +54,10 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
   equipmentType,
   equipmentId,
   onChemicalAdd,
-  equipmentContents = []
+  equipmentContents = [],
+  chemicalObjects = [],
+  totalVolume = 0,
+  onVolumeChange
 }) => {
   const [equipment, setEquipment] = useState<Equipment>({
     type: equipmentType,
@@ -64,7 +70,6 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
     mixingLevel: 0.0,
     reactionProgress: 0.0,
     reactionType: null,
-    // Burette-specific properties
     volume: equipmentType.includes('burette') ? 50 : undefined,
     concentration: 0.1,
     isDispensing: false
@@ -84,25 +89,55 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
     colorTransition: false
   });
 
+  // Helper function to get default colors for backward compatibility
+  const getDefaultChemicalColor = (chemicalName: string): string => {
+    const colorMap: { [key: string]: string } = {
+      "Hydrochloric Acid": "#FFD700",
+      "HCl": "#FFD700",
+      "Sodium Hydroxide": "#87CEEB",
+      "NaOH": "#87CEEB",
+      "Copper Sulfate": "#4169E1",
+      "CuSO4": "#4169E1",
+      "Sulfuric Acid": "#FFFF99",
+      "H2SO4": "#FFFF99",
+      "Iron Oxide": "#CD853F",
+      "Fe2O3": "#CD853F",
+      "Potassium Permanganate": "#800080",
+      "KMnO4": "#800080",
+    };
+    return colorMap[chemicalName] || "#87CEEB";
+  };
+
+  // Use chemicalObjects if available, otherwise convert equipmentContents to objects
+  const chemicals = chemicalObjects.length > 0 
+    ? chemicalObjects 
+    : equipmentContents.map(name => ({
+        name,
+        volume: 5, // Default volume for backward compatibility
+        color: getDefaultChemicalColor(name)
+      }));
+
+  const contentNames = chemicals.map(c => c.name);
+
   // Update equipment contents and calculate properties
   useEffect(() => {
     setEquipment(prev => {
       const newEquipment = {
         ...prev,
-        contents: equipmentContents
+        contents: contentNames
       };
 
       // Calculate pH based on contents
-      newEquipment.pH = calculatePH(equipmentContents);
+      newEquipment.pH = calculatePH(contentNames);
       
       // Determine if heating should occur (burettes typically don't get heated)
-      newEquipment.isHeated = shouldHeat(equipmentContents) && !equipmentType.includes('burette');
+      newEquipment.isHeated = shouldHeat(contentNames) && !equipmentType.includes('burette');
       
       // Calculate temperature based on reactions and heating
-      newEquipment.temperature = calculateTemperature(equipmentContents, newEquipment.isHeated);
+      newEquipment.temperature = calculateTemperature(contentNames, newEquipment.isHeated);
       
       // Determine reaction type and progress
-      const reactionInfo = determineReaction(equipmentContents);
+      const reactionInfo = determineReaction(contentNames);
       newEquipment.reactionType = reactionInfo.type;
       newEquipment.reactionProgress = reactionInfo.progress;
 
@@ -110,8 +145,8 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
     });
 
     // Trigger visual effects based on contents and reactions
-    updateVisualEffects(equipmentContents);
-  }, [equipmentContents, equipmentType]);
+    updateVisualEffects(contentNames);
+  }, [equipmentContents, chemicalObjects, equipmentType]);
 
   const calculatePH = (contents: string[]): number => {
     if (contents.length === 0) return 7.0;
@@ -196,14 +231,36 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
 
   const handleEquipmentClick = () => {
     setSelectedEquipment(selectedEquipment === equipmentId ? null : equipmentId);
-    console.log(`Selected equipment: ${equipmentId}, Contents:`, equipmentContents);
+    console.log(`Selected equipment: ${equipmentId}, Contents:`, contentNames);
+  };
+
+  // NEW: Enhanced chemical addition handler
+  const handleChemicalAdd = (chemical: any, volume: number) => {
+    console.log(`Adding chemical: ${chemical.name}, Volume: ${volume}ml to ${equipmentId}`);
+    
+    // Update equipment state with new chemical
+    setEquipment(prev => {
+      const newContents = [...prev.contents, chemical.name];
+      return {
+        ...prev,
+        contents: newContents
+      };
+    });
+
+    // Call parent handler to update the chemical objects and total volume
+    if (onChemicalAdd) {
+      onChemicalAdd(chemical, volume);
+    }
   };
 
   const handleChemicalDrop = (chemical: string) => {
     console.log(`Chemical ${chemical} dropped on ${equipmentId}`);
-    if (onChemicalAdd) {
-      onChemicalAdd(equipmentId, chemical);
-    }
+    // This is for backward compatibility - convert to new format
+    const chemicalObj = {
+      name: chemical,
+      color: getDefaultChemicalColor(chemical)
+    };
+    handleChemicalAdd(chemicalObj, 5);
   };
 
   const handleBuretteDispense = () => {
@@ -213,7 +270,7 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
 
   const isSelected = selectedEquipment === equipmentId;
 
-  // Determine beaker model scale based on equipment type (supports identifiers like 'beaker-250ml' or 'beaker-500ml')
+  // Determine beaker model scale based on equipment type
   const beakerScale: [number, number, number] = equipmentType.includes('500')
     ? [0.1, 0.1, 0.1]
     : equipmentType.includes('250')
@@ -222,35 +279,41 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
 
   return (
     <group position={position}>
-      {/* Render appropriate equipment type with advanced models */}
+      {/* Render appropriate equipment type with enhanced volume system */}
       {equipmentType.includes('beaker') && (
         <RealisticBeaker
           position={[0, 0, 0]}
-          contents={equipment.contents}
+          contents={chemicals} // Pass chemical objects with volume and color
+          totalVolume={totalVolume}
           isSelected={isSelected}
           temperature={equipment.temperature}
           isHeated={equipment.isHeated}
           onClick={handleEquipmentClick}
-          onChemicalAdd={(chemical: string) => onChemicalAdd?.(equipmentId, chemical)}
+          onChemicalAdd={handleChemicalAdd} // Pass the enhanced handler
           scale={beakerScale}
+          equipmentType={equipmentType}
+          onVolumeChange={onVolumeChange}
         />
       )}
 
       {equipmentType.includes('flask') && (
         <RealisticFlask
           position={[0, 0, 0]}
-          contents={equipment.contents}
+          contents={chemicals}
+          totalVolume={totalVolume}
           isSelected={isSelected}
           temperature={equipment.temperature}
           isHeated={equipment.isHeated}
           onClick={handleEquipmentClick}
+          onVolumeChange={onVolumeChange}
+          onChemicalAdd={handleChemicalAdd}
         />
       )}
 
       {equipmentType.includes('burner') && (
         <RealisticBurner
           position={[0, 0, 0]}
-          contents={equipment.contents}
+          contents={chemicals}
           isSelected={isSelected}
           temperature={equipment.temperature}
           isHeated={equipment.isHeated}
@@ -260,22 +323,20 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         />
       )}
 
-      {/* 🎯 ADDED: Burette with Stand */}
       {equipmentType.includes('burette') && (
         <BuretteWithStand
           position={[0, 0, 0]}
-          contents={equipment.contents}
+          contents={chemicals}
           isSelected={isSelected}
           temperature={equipment.temperature}
           onClick={handleEquipmentClick}
-          onChemicalAdd={(chemical: string) => onChemicalAdd?.(equipmentId, chemical)}
-          // Burette-specific props
+          onChemicalAdd={handleChemicalAdd}
           scale={[1.2, 1.2, 1.2]}
         />
       )}
 
       {/* Advanced Visual Effects - Modified for burette compatibility */}
-      {activeEffects.bubbling && !equipmentType.includes('burette') && (
+      {activeEffects.bubbling && !equipmentType.includes('burette') && totalVolume > 10 && (
         <BubblingEffect
           position={[0, 0.2, 0]}
           effectType="bubbling"
@@ -284,7 +345,7 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         />
       )}
 
-      {activeEffects.steam && !equipmentType.includes('burette') && (
+      {activeEffects.steam && !equipmentType.includes('burette') && totalVolume > 10 && (
         <SteamEffect
           position={[0, 0.5, 0]}
           effectType="steam"
@@ -293,7 +354,7 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         />
       )}
 
-      {activeEffects.crystallization && (
+      {activeEffects.crystallization && totalVolume > 5 && (
         <CrystallizationEffect
           position={[0, -0.3, 0]}
           effectType="crystallization"
@@ -307,7 +368,7 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         <mesh position={[0, -1.5, 0]}>
           <cylinderGeometry args={[0.01, 0.01, 0.3, 8]} />
           <meshStandardMaterial 
-            color={equipment.contents.length > 0 ? "#4169E1" : "#87CEEB"}
+            color={chemicals.length > 0 ? chemicals[0].color : "#87CEEB"}
             transparent 
             opacity={0.7} 
           />
@@ -315,7 +376,7 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
       )}
 
       {/* Advanced Chemistry Visualizations - Adjusted positions for burette */}
-      {equipment.contents.length > 0 && (
+      {contentNames.length > 0 && (
         <PHIndicator
           pH={equipment.pH}
           position={equipmentType.includes('burette') ? [-1.2, 1.5, 0] : [-0.8, 0.5, 0]}
@@ -334,24 +395,8 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
         <mesh position={[1.2, 1.5, 0]}>
           <planeGeometry args={[0.3, 0.1]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.8} />
-          {/* You would add text here showing volume */}
         </mesh>
       )}
     </group>
   );
 };
-
-// Usage example in your main lab component:
-/*
-<EnhancedLabEquipment
-  selectedEquipment={selectedEquipment}
-  setSelectedEquipment={setSelectedEquipment}
-  reactions={reactions}
-  setReactions={setReactions}
-  position={[4, 0, 0]}
-  equipmentType="burette"
-  equipmentId="burette_1"
-  onChemicalAdd={handleChemicalAdd}
-  equipmentContents={["Sodium Hydroxide", "NaOH"]}
-/>
-*/
