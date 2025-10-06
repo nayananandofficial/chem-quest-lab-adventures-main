@@ -12,6 +12,7 @@ import ScienceLab from "./pages/ScienceLab";
 import NotFound from "./pages/NotFound";
 import MyLessons from "./pages/MyLessons";
 import PeriodicTable from "./pages/PeriodicTable";
+import ProfilePage from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,13 @@ const App = () => (
               element={
                 <PeriodicTable />
               }
+            />
+            <Route path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } 
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
