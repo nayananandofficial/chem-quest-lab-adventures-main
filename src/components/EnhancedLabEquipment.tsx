@@ -3,7 +3,6 @@ import {
   BubblingEffect, 
   SteamEffect, 
   CrystallizationEffect, 
-  HeatGlowEffect, 
   ColorTransitionEffect 
 } from './EnhancedChemicalEffects';
 import { RealisticBeaker, RealisticFlask, RealisticBurner, BuretteWithStand } from './AdvancedEquipmentModels';
@@ -37,7 +36,7 @@ interface EnhancedLabEquipmentProps {
   position: [number, number, number];
   equipmentType: string;
   equipmentId: string;
-  onChemicalAdd?: (chemical: any, volume: number) => void; // Updated signature
+  onChemicalAdd?: (chemical: any, volume: number) => void; // Parent binds equipmentId per-instance
   equipmentContents?: string[]; // Keep for backward compatibility
   // New props for volume system:
   chemicalObjects?: Array<{name: string; volume: number; color: string}>;
@@ -88,6 +87,8 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
     heatGlow: false,
     colorTransition: false
   });
+
+  const [currentReaction, setCurrentReaction] = useState<any | null>(null);
 
   // Helper function to get default colors for backward compatibility
   const getDefaultChemicalColor = (chemicalName: string): string => {
@@ -147,6 +148,47 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
     // Trigger visual effects based on contents and reactions
     updateVisualEffects(contentNames);
   }, [equipmentContents, chemicalObjects, equipmentType]);
+
+  // Listen to global reactions and enable visual effects when a reaction targets this equipment
+  useEffect(() => {
+    if (!reactions || reactions.length === 0) return;
+    const myReactions = reactions.filter(r => r.equipmentId === equipmentId);
+    if (myReactions.length === 0) return;
+    const latest = myReactions[myReactions.length - 1];
+    setCurrentReaction(latest);
+
+    const newEffects = {
+      bubbling: !!latest.gasEvolution,
+      steam: latest.type === 'combustion' || (!!latest.heatGenerated && latest.heatGenerated > 50),
+      crystallization: !!latest.precipitateFormed,
+      heatGlow: !!latest.heatGenerated && latest.heatGenerated > 20,
+      colorTransition: !!latest.colorChange
+    };
+
+    setActiveEffects(prev => ({ ...prev, ...newEffects }));
+
+    // determine duration: combustion fast, displacement slower
+    const duration = latest.type === 'single_replacement' || latest.name?.toLowerCase().includes('displacement') ? 30000 : latest.type === 'combustion' ? 8000 : 12000;
+    const t = setTimeout(() => {
+      setActiveEffects({ bubbling: false, steam: false, crystallization: false, heatGlow: false, colorTransition: false });
+      setCurrentReaction(null);
+    }, duration);
+
+    return () => clearTimeout(t);
+  }, [reactions, equipmentId]);
+
+  // Evaporation: decrease totalVolume when heated over time
+  useEffect(() => {
+    if (!equipment.isHeated || !onVolumeChange) return;
+    if ((totalVolume || 0) <= 0) return;
+    const evapRatePerSecond = 0.5; // ml/sec baseline; can scale with temperature
+    const interval = setInterval(() => {
+      // decrease parent total volume
+      onVolumeChange(Math.max(0, (totalVolume || 0) - evapRatePerSecond));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [equipment.isHeated, onVolumeChange, totalVolume]);
 
   const calculatePH = (contents: string[]): number => {
     if (contents.length === 0) return 7.0;
@@ -222,9 +264,11 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
   const updateVisualEffects = (contents: string[]) => {
     setActiveEffects({
       bubbling: contents.includes('Hydrochloric Acid') || contents.includes('Sodium Hydroxide'),
-      steam: equipment.temperature > 80,
+      // Steam only when actively heated (e.g., on a burner) and temp high enough
+      steam: (equipment.isHeated || shouldHeat(contents)) && equipment.temperature > 60,
       crystallization: contents.includes('Copper Sulfate') || contents.includes('Salt'),
-      heatGlow: equipment.temperature > 60,
+      // removed heat glow effect in favor of boiling/steam
+      heatGlow: false,
       colorTransition: contents.length > 1
     });
   };
@@ -240,11 +284,22 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
     
     // Update equipment state with new chemical
     setEquipment(prev => {
-      const newContents = [...prev.contents, chemical.name];
+      const prevContents = Array.isArray(prev.contents) ? prev.contents : [];
+      const prevChemObjects = (prev as any).chemicalObjects && Array.isArray((prev as any).chemicalObjects) ? (prev as any).chemicalObjects : [];
+
+      const newContents = [...prevContents, chemical.name];
+      const newChemicalObj = { name: chemical.name, volume: Number(volume || 0), color: chemical.color || '#87CEEB' };
+      const newChemObjects = [...prevChemObjects, newChemicalObj];
+
+      const total = newChemObjects.reduce((s, c) => s + Number(c.volume || 0), 0);
+
       return {
         ...prev,
-        contents: newContents
-      };
+        contents: newContents,
+        // keep chemicalObjects on local equipment state for consistency with parent
+        chemicalObjects: newChemObjects as any,
+        totalVolume: total,
+      } as any;
     });
 
     // Call parent handler to update the chemical objects and total volume
@@ -360,6 +415,28 @@ export const EnhancedLabEquipment: React.FC<EnhancedLabEquipmentProps> = ({
           effectType="crystallization"
           intensity={0.7}
           duration={12000}
+        />
+      )}
+
+      {/* Reaction-driven color transition */}
+      {currentReaction?.colorChange && (
+        <ColorTransitionEffect
+          position={[0, 0.2, 0]}
+          effectType="color_transition"
+          intensity={0.9}
+          duration={currentReaction.type === 'single_replacement' ? 30000 : 8000}
+          fromColor={currentReaction.colorChange.from}
+          toColor={currentReaction.colorChange.to}
+        />
+      )}
+
+      {/* Replace heat glow with intensified steam/simmer for heated liquids */}
+      {activeEffects.steam && (
+        <SteamEffect
+          position={[0, 0.5, 0]}
+          effectType="steam"
+          intensity={Math.min(((currentReaction?.heatGenerated || 20) / 100) + (equipment.isHeated ? 0.5 : 0), 1)}
+          duration={10000}
         />
       )}
 

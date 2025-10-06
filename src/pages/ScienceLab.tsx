@@ -25,6 +25,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import axios from "axios";
+import useChemicalReactionEngine from '@/components/ChemicalReactionEngine';
+import useExperimentScoring, { ExperimentScorePanel } from '@/components/ExperimentScoring';
+import EducationalTooltips from '@/components/EducationalTooltips';
+import SafetyWarnings from '@/components/SafetyWarnings';
 
 interface PlacedEquipment {
   id: string;
@@ -46,10 +50,15 @@ const ScienceLab = () => {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
+  // Reaction engine and scoring
+  const reactionEngine = useChemicalReactionEngine();
+  const scoring = useExperimentScoring();
+
   const resetLab = () => {
     setReactions([]);
     setSelectedEquipment(null);
     setPlacedEquipment([]);
+    scoring.reset();
     toast({
       title: "Lab Reset",
       description: "All equipment and reactions have been cleared.",
@@ -112,9 +121,30 @@ const ScienceLab = () => {
   setPlacedEquipment((prev) =>
     prev.map((equipment) => {
       if (equipment.id === equipmentId) {
-        return { 
-          ...equipment, 
-          totalVolume: newTotalVolume
+        // If there are chemicalObjects present, scale their volumes proportionally
+        const existing = Array.isArray(equipment.chemicalObjects) ? equipment.chemicalObjects : [];
+        if (existing.length > 0) {
+          const currentTotal = existing.reduce((s, c) => s + Number(c.volume || 0), 0);
+          if (currentTotal <= 0) {
+            // nothing to scale, just set totalVolume
+            return {
+              ...equipment,
+              totalVolume: Number(newTotalVolume || 0),
+            };
+          }
+          const scale = Number(newTotalVolume) / currentTotal;
+          const scaled = existing.map((c) => ({ ...c, volume: Number(c.volume || 0) * scale }));
+          const recalculated = scaled.reduce((s, c) => s + Number(c.volume || 0), 0);
+          return {
+            ...equipment,
+            chemicalObjects: scaled,
+            totalVolume: recalculated,
+          };
+        }
+
+        return {
+          ...equipment,
+          totalVolume: Number(newTotalVolume || 0),
         };
       }
       return equipment;
@@ -146,25 +176,55 @@ const ScienceLab = () => {
   };
 
   const handleChemicalAdd = (equipmentId: string, chemical: any, volume: number) => {
+  const vol = Number(volume || 0);
   setPlacedEquipment((prev) =>
     prev.map((equipment) => {
       if (equipment.id === equipmentId) {
-        const newContents = [...equipment.contents, chemical.name];
-        
+        const existingContents = Array.isArray(equipment.contents) ? equipment.contents : [];
+        const existingChemObjects = Array.isArray(equipment.chemicalObjects) ? equipment.chemicalObjects : [];
+
+        const newContents = [...existingContents, chemical.name];
+
         const newChemicalObject = {
           name: chemical.name,
-          volume: volume,
-          color: chemical.color
+          volume: vol,
+          color: chemical.color || chemical.colorHex || "#87CEEB",
         };
-        const newChemicalObjects = [...equipment.chemicalObjects, newChemicalObject];
-        const newTotalVolume = newChemicalObjects.reduce((sum, chem) => sum + chem.volume, 0);
-        
-        return { 
-          ...equipment, 
+
+        const newChemicalObjects = [...existingChemObjects, newChemicalObject];
+
+        const newTotalVolume = newChemicalObjects.reduce((sum, chem) => sum + Number(chem.volume || 0), 0);
+
+        const updated = {
+          ...equipment,
           contents: newContents,
           chemicalObjects: newChemicalObjects,
-          totalVolume: newTotalVolume
+          totalVolume: newTotalVolume,
         };
+        // After updating placedEquipment, run reaction detection and scoring
+        try {
+          const names = newChemicalObjects.map(c => c.name);
+          const reaction = reactionEngine.perform(names, 20);
+          if (reaction) {
+            const reactionInstance = {
+              ...reaction,
+              id: `${reaction.id}-${Date.now()}`,
+              equipmentId: equipment.id,
+              startedAt: Date.now(),
+            };
+            setReactions(prev => [...prev, reactionInstance]);
+            // Award scoring: chemical addition + successful reaction
+            scoring.award(15, `Added ${chemical.name}`);
+            scoring.award(50, `Reaction: ${reaction.name}`);
+            scoring.awardBadge(reaction.type || 'reaction');
+          } else {
+            scoring.award(15, `Added ${chemical.name}`);
+          }
+        } catch (e) {
+          console.error('Reaction engine error', e);
+        }
+
+        return updated;
       }
       return equipment;
     })
@@ -172,34 +232,23 @@ const ScienceLab = () => {
 
   toast({
     title: "Chemical Added",
-    description: `${chemical.name} (${volume}ml) added to equipment.`,
+    description: `${chemical.name} (${vol}ml) added to equipment.`,
   });
 };
 
-// Update the EnhancedLabEquipment props to pass the enhanced handler
-{placedEquipment.map((equipment) => ( 
-  <EnhancedLabEquipment
-    key={equipment.id}
-    selectedEquipment={selectedEquipment}
-    setSelectedEquipment={setSelectedEquipment}
-    reactions={reactions}
-    setReactions={setReactions}
-    position={equipment.position}
-    equipmentType={equipment.type}
-    equipmentId={equipment.id}
-    equipmentContents={equipment.contents}
-    chemicalObjects={equipment.chemicalObjects}
-    totalVolume={equipment.totalVolume}
-    onVolumeChange={(newVolume) => handleVolumeChange(equipment.id, newVolume)}
-    onChemicalAdd={(chemical, volume) => handleChemicalAdd(equipment.id, chemical, volume)} // Updated
-  />
-))}
+// (removed stray duplicate rendering block)
 
   const handleChemicalSelect = (chemical: any) => {
-  console.log('Chemical selected:', chemical); // Add this
-  console.log('Selected equipment:', selectedEquipment); // Add this
+  console.log('Chemical selected:', chemical);
+  console.log('Selected equipment:', selectedEquipment);
+  
   if (selectedEquipment) {
-    handleChemicalAdd(selectedEquipment, chemical.name, chemical.color);
+    // FIXED: Find the equipment and use its onChemicalAdd handler
+    const equipment = placedEquipment.find(eq => eq.id === selectedEquipment);
+    if (equipment) {
+      // Call handleChemicalAdd with proper parameters
+      handleChemicalAdd(selectedEquipment, chemical, 5); // 5ml default
+    }
   } else {
     toast({
       title: "No Equipment Selected",
@@ -209,6 +258,8 @@ const ScienceLab = () => {
   }
 };
 
+
+
   const getEquipmentContents = (equipmentId: string): string[] => {
     const equipment = placedEquipment.find((eq) => eq.id === equipmentId);
     return equipment?.contents || [];
@@ -216,6 +267,10 @@ const ScienceLab = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      {/* Score panel and safety tooltips */}
+      <ExperimentScorePanel score={scoring.score} badges={scoring.badges} />
+      <SafetyWarnings alerts={reactionEngine.safetyAlerts} onClear={() => reactionEngine.clearSafetyAlerts()} />
+      <EducationalTooltips reaction={reactionEngine.activeReactions[reactionEngine.activeReactions.length - 1]} />
       <DragDropProvider>
         {/* Top Bar */}
         <header className="flex items-center justify-between px-6 py-3 bg-card border-b shadow-sm">
@@ -298,6 +353,7 @@ const ScienceLab = () => {
                   chemicalObjects={equipment.chemicalObjects} // New volume system
                   totalVolume={equipment.totalVolume}
                   onVolumeChange={(newVolume) => handleVolumeChange(equipment.id, newVolume)}
+                  onChemicalAdd={(chemical, volume) => handleChemicalAdd(equipment.id, chemical, volume)}
                 />
               ))}
 
