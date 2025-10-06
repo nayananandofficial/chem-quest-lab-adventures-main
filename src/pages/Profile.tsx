@@ -1,36 +1,163 @@
 import React, { useState, useEffect } from "react";
 import { getAuth } from "firebase/auth";
 import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   User,
   Settings,
-  Palette,
   LogOut,
   Cpu,
-  Zap,
-  Gauge,
+  Edit,
+  Camera,
+  Award,
+  Beaker,
+  FlaskConical,
+  Atom,
+  Trophy,
+  Clock,
+  Target,
+  BookOpen,
+  ChevronRight,
+  Mail,
+  Calendar,
+  MapPin,
+  Globe,
   Monitor,
-  Moon,
-  Sun,
+  ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+// Editable Field Component
+const EditableField = ({ label, value, field, multiline = false, icon, formData, setFormData, editingField, setEditingField }) => {
+  const isEditing = editingField === field;
+  
+  return (
+    <Card className="transition-all duration-300 hover:shadow-md">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          {icon && <span className="text-indigo-600">{icon}</span>}
+          <CardTitle className="text-sm font-semibold">{label}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isEditing ? (
+          <div className="space-y-4">
+            {multiline ? (
+              <textarea
+                value={value}
+                onChange={(e) => setFormData({...formData, [field]: e.target.value})}
+                className="w-full p-3 border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                rows={4}
+                placeholder={`Enter your ${label.toLowerCase()}`}
+              />
+            ) : (
+              <Input
+                value={value}
+                onChange={(e) => setFormData({...formData, [field]: e.target.value})}
+                placeholder={`Enter your ${label.toLowerCase()}`}
+              />
+            )}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setEditingField(null)}
+                size="sm"
+              >
+                Save
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setEditingField(null)}
+                size="sm"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="group flex items-center justify-between">
+            <p className="text-gray-800 font-medium">
+              {value || (
+                <span className="text-gray-400 italic">Add {label.toLowerCase()}</span>
+              )}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEditingField(field)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// Stats Card Component
+const StatsCard = ({ icon, value, label, className }) => (
+  <Card className={`${className} transition-all duration-300 hover:shadow-md`}>
+    <CardContent className="p-6">
+      <div className="flex items-center gap-4">
+        <div className="p-3 bg-indigo-600 rounded-lg shadow-lg">
+          {icon}
+        </div>
+        <div>
+          <p className="text-3xl font-bold text-gray-800">{value}</p>
+          <p className="text-sm font-medium text-gray-600">{label}</p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// Achievement Badge Component
+const AchievementBadge = ({ title, description, earned = false }) => (
+  <Card className={`transition-all ${
+    earned
+      ? 'border-yellow-400 bg-gradient-to-br from-yellow-50 to-amber-50'
+      : 'border-gray-200 bg-gray-50'
+  }`}>
+    <CardContent className="p-4">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-full ${
+          earned ? 'bg-yellow-500' : 'bg-gray-400'
+        }`}>
+          <Trophy className="h-4 w-4 text-white" />
+        </div>
+        <div>
+          <h4 className={`font-semibold ${earned ? 'text-yellow-700' : 'text-gray-500'}`}>
+            {title}
+          </h4>
+          <p className={`text-xs ${earned ? 'text-yellow-600' : 'text-gray-400'}`}>
+            {description}
+          </p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export default function ChemistryLabProfilePage() {
   const auth = getAuth();
   const currentUser = auth.currentUser;
-
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     displayName: "",
     bio: "",
     photoURL: "",
+    institution: "",
+    location: "",
+    website: "",
   });
-  const [isEditing, setIsEditing] = useState(false);
+
+  const [editingField, setEditingField] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<
-    "Profile" | "Settings" | "Appearance"
-  >("Profile");
+  const [activeTab, setActiveTab] = useState("Profile");
 
   const [settings, setSettings] = useState({
     performanceMode: "balanced",
@@ -38,37 +165,31 @@ export default function ChemistryLabProfilePage() {
     fastLabRendering: false,
   });
 
-  const [appearance, setAppearance] = useState({
-    theme: "light",
-    accentColor: "indigo",
-    density: "comfortable",
-  });
-  const [gpuType, setGpuType] = useState<"integrated" | "discrete" | "unknown">("unknown");
+  const [gpuType, setGpuType] = useState("unknown");
 
-useEffect(() => {
-  const canvas = document.createElement("canvas");
-  const gl = (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")) as WebGLRenderingContext | null;
+  // GPU Detection
+  useEffect(() => {
+      const canvas = document.createElement("canvas");
+      const gl = (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")) as unknown as WebGLRenderingContext | null;
 
-  if (gl) {
-    const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
-    const renderer = debugInfo
-      ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
-      : "";
+      if (gl) {
+        // use any to safely access WebGL debug extension methods without TS errors
+        const anyGl = gl as any;
+        const debugInfo = anyGl.getExtension && anyGl.getExtension("WEBGL_debug_renderer_info");
+        const renderer = debugInfo && anyGl.getParameter ? String(anyGl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)) : "";
 
-    if (renderer) {
-      const lower = renderer.toLowerCase();
-      if (lower.includes("intel") || (lower.includes("radeon vega") && lower.includes("integrated"))) {
-        setGpuType("integrated");
-      } else if (lower.includes("nvidia") || lower.includes("amd") || lower.includes("radeon")) {
-        setGpuType("discrete");
-      } else {
-        setGpuType("unknown");
+        if (renderer) {
+          const lower = renderer.toLowerCase();
+          if (lower.includes("intel") || (lower.includes("radeon vega") && lower.includes("integrated"))) {
+            setGpuType("integrated");
+          } else if (lower.includes("nvidia") || lower.includes("amd") || lower.includes("radeon")) {
+            setGpuType("discrete");
+          } else {
+            setGpuType("unknown");
+          }
+        }
       }
-    }
-  }
-}, []);
-
-  
+  }, []);
 
   useEffect(() => {
     if (currentUser) {
@@ -76,328 +197,435 @@ useEffect(() => {
         displayName: currentUser.displayName || "",
         bio: "",
         photoURL: currentUser.photoURL || "",
+        institution: "",
+        location: "",
+        website: "",
       });
       setLoading(false);
     }
   }, [currentUser]);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () =>
-        setFormData({ ...formData, photoURL: reader.result as string });
+        setFormData({ ...formData, photoURL: String(reader.result || '') });
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleBackToLab = () => {
+    navigate("/lab");
   };
 
   const level = 4;
   const nextLevel = level + 1;
   const progress = 72;
+  const experimentsCompleted = 23;
+  const labHours = 47;
+  const badges = 8;
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-lg font-medium">
-        Loading...
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-indigo-600 mx-auto"></div>
+          <p className="text-xl font-semibold text-gray-700 mt-6">Loading your lab profile...</p>
+        </div>
       </div>
     );
+  }
 
   return (
-    <div
-      className={`flex min-h-screen font-sans transition-colors duration-300 ${
-        appearance.theme === "dark" ? "bg-gray-900 text-gray-100" : "bg-gray-50"
-      }`}
-    >
-      {/* Sidebar */}
-      <aside
-        className={`fixed left-0 top-0 h-full w-64 ${
-          appearance.theme === "dark" ? "bg-gray-800" : "bg-white"
-        } border-r shadow-md flex flex-col`}
-      >
-        <div className="p-6 border-b">
-          <h1 className="text-xl font-bold text-indigo-600">
-            Virtual Chemistry Lab
-          </h1>
+    <div className="min-h-screen bg-gray-50 p-4">
+      {/* Top Navbar: Title left, Tabs center, Button right */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex-1 text-start">
+          <h1 className="text-2xl font-bold">Chemistry Lab Profile</h1>
         </div>
-
-        <nav className="flex-1 flex flex-col p-4 gap-2">
+        
+        {/* Tab Navigation */}
+        <div className="flex gap-2">
           {[
             { name: "Profile", icon: <User className="h-4 w-4" /> },
             { name: "Settings", icon: <Settings className="h-4 w-4" /> },
           ].map(({ name, icon }) => (
-            <button
+            <Button
               key={name}
-              onClick={() => setActiveTab(name as any)}
-              className={`flex items-center gap-3 px-4 py-2 rounded-md transition-all text-sm font-medium ${
-                activeTab === name
-                  ? "bg-indigo-600 text-white shadow"
-                  : "text-gray-700 hover:bg-indigo-50"
-              }`}
+              variant={activeTab === name ? "default" : "outline"}
+              onClick={() => setActiveTab(name)}
+              className="flex items-center gap-2"
+              size="sm"
             >
               {icon}
               {name}
-            </button>
+            </Button>
           ))}
-        </nav>
-
-        <div className="p-4 border-t">
-        <button
+        </div>
+        
+        <div className="flex-shrink-0 flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleBackToLab}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Lab
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => {
-            auth.signOut().then(() => {
-                navigate("/"); // redirect to landing page
-            });
+              auth.signOut().then(() => {
+                navigate("/");
+              });
             }}
-            className="flex items-center gap-3 w-full px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition"
-        >
+            className="flex items-center gap-2 text-red-600 hover:text-red-700"
+          >
             <LogOut className="h-4 w-4" />
             Logout
-        </button>
+          </Button>
         </div>
+      </div>
 
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 ml-64 p-8 overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold">{activeTab}</h2>
-        </div>
-
-        {/* PROFILE */}
-        {activeTab === "Profile" && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            {/* Progress */}
-            <section className="bg-gradient-to-r from-indigo-100 to-purple-100 p-6 rounded-xl shadow border">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                    {level}
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    LVL
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-semibold">
-                    Level {level}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Member since {currentUser.metadata.creationTime?.split("T")[0]}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Progress to Level {nextLevel}</span>
-                  <span>{progress}%</span>
-                </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full">
-                  <div
-                    className="h-3 bg-indigo-600 rounded-full transition-all"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
-              </div>
-            </section>
-
-            {/* Profile Info */}
-            <section className="bg-white p-6 rounded-xl shadow border space-y-6">
-              <div className="flex items-center gap-6">
-                <div className="relative">
-                  <img
-                    src={formData.photoURL || "https://via.placeholder.com/96"}
-                    alt="avatar"
-                    className="w-24 h-24 rounded-full object-cover ring-4 ring-indigo-100"
-                  />
-                  {isEditing && (
-                    <label className="absolute bottom-0 right-0 bg-indigo-600 p-2 rounded-full cursor-pointer hover:bg-indigo-700">
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleAvatarChange}
+      <div className="flex gap-4 flex-wrap">
+        {/* Main Content */}
+        <div className="flex-1 space-y-4">
+          {/* PROFILE SECTION */}
+          {activeTab === "Profile" && (
+            <>
+              {/* Profile Header Card */}
+              <Card className="shadow-lg">
+                <CardContent className="p-8">
+                  <div className="flex items-center gap-8">
+                    <div className="relative group">
+                      <img
+                        src={formData.photoURL || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face&auto=format&q=80"}
+                        alt="Profile Avatar"
+                        className="w-24 h-24 rounded-full border-4 border-gray-200 shadow-lg object-cover"
                       />
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 10l4.553-4.553a2 2 0 00-2.828-2.828L12 7.172 8.276 3.448a2 2 0 10-2.828 2.828L9.172 10M12 7v13"
+                      <label className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg cursor-pointer group-hover:scale-110 transition-transform">
+                        <Camera className="h-4 w-4 text-indigo-600" />
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
                         />
-                      </svg>
-                    </label>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {formData.displayName || "Your Name"}
-                  </h3>
-                  <p className="text-sm text-gray-500">{currentUser.email}</p>
-                </div>
+                      </label>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
+                    </div>
+                    
+                    <div>
+                      <h2 className="text-3xl font-bold mb-2">
+                        {formData.displayName || "Chemistry Researcher"}
+                      </h2>
+                      <p className="text-gray-600 flex items-center gap-2 mb-4">
+                        <Mail className="h-4 w-4" />
+                        {currentUser?.email}
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <span className="px-4 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                          Level {level} Chemist
+                        </span>
+                        <span className="px-4 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                          {badges} Badges
+                        </span>
+                        <span className="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                          Online
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="mt-6 pt-6 border-t">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        Progress to Level {nextLevel}
+                      </span>
+                      <span className="text-sm font-bold text-indigo-600">{progress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Complete 5 more experiments to reach the next level
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Lab Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatsCard
+                  icon={<Beaker className="h-6 w-6 text-white" />}
+                  value={experimentsCompleted}
+                  label="Experiments Completed"
+                  className=""
+                />
+                
+                <StatsCard
+                  icon={<Clock className="h-6 w-6 text-white" />}
+                  value={labHours}
+                  label="Total Lab Hours"
+                  className=""
+                />
+                
+                <StatsCard
+                  icon={<Award className="h-6 w-6 text-white" />}
+                  value={badges}
+                  label="Badges Earned"
+                  className=""
+                />
               </div>
 
-              <div className="grid gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={currentUser.email || ""}
-                    disabled
-                    className="w-full p-2 border rounded bg-gray-100"
-                  />
-                </div>
+              {/* Personal Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-indigo-600" />
+                    Personal Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <EditableField
+                      label="Display Name"
+                      value={formData.displayName}
+                      field="displayName"
+                      icon={<User className="h-4 w-4" />}
+                      formData={formData}
+                      setFormData={setFormData}
+                      editingField={editingField}
+                      setEditingField={setEditingField}
+                    />
+                    
+                    <EditableField
+                      label="Institution"
+                      value={formData.institution}
+                      field="institution"
+                      icon={<BookOpen className="h-4 w-4" />}
+                      formData={formData}
+                      setFormData={setFormData}
+                      editingField={editingField}
+                      setEditingField={setEditingField}
+                    />
+                    
+                    <EditableField
+                      label="Location"
+                      value={formData.location}
+                      field="location"
+                      icon={<MapPin className="h-4 w-4" />}
+                      formData={formData}
+                      setFormData={setFormData}
+                      editingField={editingField}
+                      setEditingField={setEditingField}
+                    />
+                    
+                    <EditableField
+                      label="Website"
+                      value={formData.website}
+                      field="website"
+                      icon={<Globe className="h-4 w-4" />}
+                      formData={formData}
+                      setFormData={setFormData}
+                      editingField={editingField}
+                      setEditingField={setEditingField}
+                    />
+                  </div>
+                  
+                  <div className="mt-4">
+                    <EditableField
+                      label="Bio"
+                      value={formData.bio}
+                      field="bio"
+                      multiline={true}
+                      icon={<Edit className="h-4 w-4" />}
+                      formData={formData}
+                      setFormData={setFormData}
+                      editingField={editingField}
+                      setEditingField={setEditingField}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* SETTINGS SECTION */}
+          {activeTab === "Settings" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Cpu className="h-5 w-5 text-indigo-600" />
+                  System & Performance
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
+                    Beta
+                  </span>
+                </CardTitle>
+                <CardDescription>
+                  Configure your lab settings and performance options
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Monitor className="h-5 w-5 text-blue-600" />
+                      <span className="font-semibold text-blue-800">System Detection</span>
+                    </div>
+                    <p className="text-blue-700 font-medium">
+                      GPU Type: {gpuType === "unknown" ? "Unknown" : gpuType === "discrete" ? "Discrete (NVIDIA/AMD)" : "Integrated (Intel/AMD Ryzen)"}
+                    </p>
+                  </CardContent>
+                </Card>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Display Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.displayName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, displayName: e.target.value })
-                    }
-                    disabled={!isEditing}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Bio
-                  </label>
-                  <textarea
-                    value={formData.bio}
-                    onChange={(e) =>
-                      setFormData({ ...formData, bio: e.target.value })
-                    }
-                    rows={4}
-                    disabled={!isEditing}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        setIsEditing(false);
-                        alert("Saved!");
-                      }}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 border rounded hover:bg-gray-100"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                  >
-                    Edit Profile
-                  </button>
-                )}
-              </div>
-            </section>
-          </motion.div>
-        )}
-
-        {/* SETTINGS */}
-        {activeTab === "Settings" && (
-          <motion.section
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-white p-6 rounded-xl shadow border space-y-6"
-          >
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Cpu className="h-5 w-5 text-indigo-600" /> System & Performance   (Beta Version - More features coming soon on Version 1.0)
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Optimization Mode
-                </label>
-                <select
+                  </label>
+                  <select
                     value={settings.performanceMode}
                     onChange={(e) =>
-                    setSettings({
+                      setSettings({
                         ...settings,
                         performanceMode: e.target.value,
-                    })
+                      })
                     }
-                    className="border rounded p-2 w-full"
-                >
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
                     <option value="balanced">Balanced (Recommended)</option>
                     <option value="performance">High Performance</option>
                     <option value="eco">Power Saving</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                    Detected GPU: {gpuType === "unknown"
-                    ? "Unknown"
-                    : gpuType === "discrete"
-                    ? "Discrete (NVIDIA/AMD)"
-                    : "Integrated (Intel/AMD Ryzen)"}
-                </p>
+                  </select>
                 </div>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={settings.enableGPUBoost}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      enableGPUBoost: e.target.checked,
-                    })
-                  }
-                />
-                <span>Enable GPU Boost for lab rendering (faster visuals)</span>
-              </label>
 
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={settings.fastLabRendering}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      fastLabRendering: e.target.checked,
-                    })
-                  }
-                />
-                <span>Enable Fast Chemistry Simulation Mode</span>
-              </label>
-            </div>
+                <div className="space-y-4">
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <label className="flex items-center gap-4 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={settings.enableGPUBoost}
+                          onChange={(e) =>
+                            setSettings({
+                              ...settings,
+                              enableGPUBoost: e.target.checked,
+                            })
+                          }
+                          className="w-5 h-5 text-indigo-600 border-2 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-gray-800">Enable GPU Boost</span>
+                          <p className="text-sm text-gray-600">Faster 3D rendering for chemistry models</p>
+                        </div>
+                      </label>
+                    </CardContent>
+                  </Card>
 
-            <div className="pt-4">
-              <button className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                Apply Changes
-              </button>
-            </div>
-          </motion.section>
-        )}
-      </main>
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <label className="flex items-center gap-4 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={settings.fastLabRendering}
+                          onChange={(e) =>
+                            setSettings({
+                              ...settings,
+                              fastLabRendering: e.target.checked,
+                            })
+                          }
+                          className="w-5 h-5 text-indigo-600 border-2 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                        <div>
+                          <span className="font-semibold text-gray-800">Fast Chemistry Simulation</span>
+                          <p className="text-sm text-gray-600">Accelerated molecular simulations</p>
+                        </div>
+                      </label>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Button className="w-full">
+                    Apply Changes
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Sidebar */}
+        <div className="w-72 space-y-4">
+          {/* Chemistry Specializations */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <FlaskConical className="h-4 w-4 text-indigo-600" />
+                Chemistry Specializations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  'Organic Chemistry',
+                  'Analytical Chemistry', 
+                  'Physical Chemistry',
+                  'Biochemistry',
+                  'Inorganic Chemistry',
+                  'Environmental Chemistry'
+                ].map((spec) => (
+                  <span
+                    key={spec}
+                    className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium"
+                  >
+                    {spec}
+                  </span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Achievements */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Trophy className="h-4 w-4 text-indigo-600" />
+                Recent Achievements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <AchievementBadge
+                  title="First Experiment"
+                  description="Completed your first lab experiment"
+                  earned={true}
+                />
+                <AchievementBadge
+                  title="Safety Expert"
+                  description="Perfect safety record for 30 days"
+                  earned={true}
+                />
+                <AchievementBadge
+                  title="Speed Chemist"
+                  description="Complete 5 experiments in one day"
+                  earned={false}
+                />
+                <AchievementBadge
+                  title="Lab Master"
+                  description="Reach Level 10 in the lab"
+                  earned={false}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
