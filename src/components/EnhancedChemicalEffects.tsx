@@ -99,6 +99,7 @@ export const SteamEffect: React.FC<ChemicalEffectProps> = ({
         const newParticles = [...prev];
         // Add new steam particles
         if (Math.random() < intensity) {
+          const baseScale = 0.06 + intensity * 0.28;
           newParticles.push({
             id: particleId++,
             position: new THREE.Vector3(
@@ -106,11 +107,11 @@ export const SteamEffect: React.FC<ChemicalEffectProps> = ({
               0,
               (Math.random() - 0.5) * 0.4
             ),
-            scale: 0.1 + Math.random() * 0.2,
+            scale: baseScale * (0.7 + Math.random() * 0.6),
             life: 1.0,
             velocity: new THREE.Vector3(
               (Math.random() - 0.5) * 0.02,
-              0.03 + Math.random() * 0.02,
+              0.035 + Math.random() * 0.03 + intensity * 0.04,
               (Math.random() - 0.5) * 0.02
             )
           });
@@ -144,9 +145,9 @@ export const SteamEffect: React.FC<ChemicalEffectProps> = ({
         <mesh key={particle.id} position={particle.position.toArray() as [number, number, number]}>
           <sphereGeometry args={[particle.scale, 6, 6]} />
           <meshStandardMaterial 
-            color="#F0F8FF"
+            color={intensity > 0.6 ? '#F5F5F5' : '#F0F8FF'}
             transparent
-            opacity={particle.life * 0.3}
+            opacity={Math.min(0.7, particle.life * (0.35 + intensity * 0.6))}
           />
         </mesh>
       ))}
@@ -180,7 +181,8 @@ export const CrystallizationEffect: React.FC<ChemicalEffectProps> = ({
               -0.3 + Math.random() * 0.2,
               (Math.random() - 0.5) * 0.8
             ),
-            scale: 0.01,
+            // Smaller initial crystals for copper sulfate
+            scale: 0.003 + Math.random() * 0.006,
             rotation: new THREE.Euler(
               Math.random() * Math.PI,
               Math.random() * Math.PI,
@@ -206,7 +208,8 @@ export const CrystallizationEffect: React.FC<ChemicalEffectProps> = ({
   useFrame(() => {
     setCrystals(prev => prev.map(crystal => ({
       ...crystal,
-      scale: Math.min(crystal.scale + 0.002, 0.05 + Math.random() * 0.03)
+      // slower growth and lower cap for smaller crystals
+      scale: Math.min(crystal.scale + 0.0009, 0.012 + Math.random() * 0.008)
     })));
   });
 

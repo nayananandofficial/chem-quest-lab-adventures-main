@@ -206,7 +206,13 @@ const ScienceLab = () => {
           const names = newChemicalObjects.map(c => c.name);
           const reaction = reactionEngine.perform(names, 20);
           if (reaction) {
-            setReactions(prev => [...prev, reaction]);
+            const reactionInstance = {
+              ...reaction,
+              id: `${reaction.id}-${Date.now()}`,
+              equipmentId: equipment.id,
+              startedAt: Date.now(),
+            };
+            setReactions(prev => [...prev, reactionInstance]);
             // Award scoring: chemical addition + successful reaction
             scoring.award(15, `Added ${chemical.name}`);
             scoring.award(50, `Reaction: ${reaction.name}`);
