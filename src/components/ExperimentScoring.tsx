@@ -23,11 +23,11 @@ export const useExperimentScoring = () => {
 
 export const ExperimentScorePanel: React.FC<{ score: number; badges: string[] }> = ({ score, badges }) => {
   return (
-    <div style={{ position: 'absolute', right: 400, top: 16, zIndex: 50 }}>
-      <div className="p-2 bg-card border rounded shadow">
-        <div className="text-sm font-semibold">Experiment Score</div>
-        <div className="text-2xl font-bold">{score}</div>
-        <div className="mt-2 text-xs">Badges: {badges.join(', ') || 'None'}</div>
+    <div style={{ position: 'absolute', left: 420, top: 12, zIndex: 50 }}>
+      <div className="p-1 bg-card border rounded shadow">
+        <div className="text-xl font-semibold inline-flex">Experiment Score:
+          <div className="text-xl font-bold pl-2">{score}</div>
+        </div>
       </div>
     </div>
   );

@@ -182,54 +182,144 @@ const ScienceLab = () => {
           variant: "destructive",
         });
 
-      try {
-        const experimentPayload = {
-          user_id: user.id,
-          experiment_name: `Lab Session ${new Date().toLocaleString()}`,
-          chemicals_used: placedEquipment.flatMap((eq) => eq.contents),
-          results: {
-            reactions: reactions.length,
-            equipment_used: placedEquipment.length,
-            chemicals_mixed: placedEquipment.reduce(
-              (t, eq) => t + eq.chemicalObjects.length,
-              0
-            ),
-            session_duration: experimentState.startTime
-              ? Math.round((Date.now() - experimentState.startTime.getTime()) / 1000)
-              : 0,
-          },
-          score: scoring.score,
-        };
+    try {
+      const experimentData = {
+        user_id: user.uid,
+        experiment_name: `Lab Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+        chemicals_used: placedEquipment.flatMap(eq => eq.contents),
+        results: {
+          reactions: reactions.length,
+          equipment_used: placedEquipment.length,
+          chemicals_mixed: placedEquipment.reduce((total, eq) => total + eq.chemicalObjects.length, 0),
+          session_duration: experimentState.startTime ? 
+            Math.round((Date.now() - experimentState.startTime.getTime()) / 1000) : 0,
+          equipment_details: placedEquipment.map(eq => ({
+            type: eq.type,
+            chemicals: eq.chemicalObjects,
+            totalVolume: eq.totalVolume
+          })),
+          reactions_performed: reactions.map(r => ({
+            name: r.name,
+            type: r.type,
+            timestamp: r.startedAt
+          })),
+          timestamp: new Date().toISOString(),
+        },
+        score: scoring.score,
+      };
 
-        const res = await axios.post(
-          `${import.meta.env.VITE_SERVER_URL}/api/add-experiment`,
-          { experimentData: experimentPayload }
-        );
+      console.log("Saving experiment data:", experimentData);
+      const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/api/add-experiment`, 
+        { experimentData }
+      );
+      console.log("Save response:", response);
+      
+      if (response.status === 200) {
+        setExperimentState(prev => ({
+          ...prev,
+          status: 'active'
+        }));
 
-        if (res.status === 200)
-          toast({
-            title: isAutoSave ? "Auto-saved" : "Experiment Saved 💾",
-            description: `Progress saved (${scoring.score} points).`,
-          });
-      } catch {
         toast({
-          title: "Save Failed",
-          description: "Could not save experiment. Try again later.",
-          variant: "destructive",
+          title: isAutoSave ? "Auto-saved" : "Experiment Saved!",
+          description: `Progress saved with ${scoring.score} points.`,
         });
       }
-    },
-    [user, experimentState, placedEquipment, reactions, scoring, toast]
-  );
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "Could not save experiment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
-  const handleChemicalAdd = useCallback(
-    (equipmentId: string, chemical: any, volume: number) => {
-      if (!isExperimentStarted)
-        return toast({
-          title: "Experiment Not Started",
-          description: "Click 'Start' to begin experimenting.",
-          variant: "destructive",
-        });
+  
+  const handleVolumeChange = (equipmentId: string, newTotalVolume: number) => {
+    if (!isExperimentStarted) {
+      toast({
+        title: "Experiment Not Started",
+        description: "Click 'Start' in Lab Controls to begin experimenting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPlacedEquipment((prev) =>
+      prev.map((equipment) => {
+        if (equipment.id === equipmentId) {
+          const existing = Array.isArray(equipment.chemicalObjects) ? equipment.chemicalObjects : [];
+          if (existing.length > 0) {
+            const currentTotal = existing.reduce((s, c) => s + Number(c.volume || 0), 0);
+            if (currentTotal <= 0) {
+              return {
+                ...equipment,
+                totalVolume: Number(newTotalVolume || 0),
+              };
+            }
+            const scale = Number(newTotalVolume) / currentTotal;
+            const scaled = existing.map((c) => ({ ...c, volume: Number(c.volume || 0) * scale }));
+            const recalculated = scaled.reduce((s, c) => s + Number(c.volume || 0), 0);
+            return {
+              ...equipment,
+              chemicalObjects: scaled,
+              totalVolume: recalculated,
+            };
+          }
+
+          return {
+            ...equipment,
+            totalVolume: Number(newTotalVolume || 0),
+          };
+        }
+        return equipment;
+      })
+    );
+
+    toast({
+      title: "Volume Adjusted",
+      description: `Volume set to ${newTotalVolume}ml`,
+    });
+  };
+
+  const handleEquipmentPlace = (equipmentId: string, position: [number, number, number]) => {
+    if (!isExperimentStarted) {
+      toast({
+        title: "Experiment Not Started", 
+        description: "Click 'Start' to place equipment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newEquipment: PlacedEquipment = {
+      id: `${equipmentId}-${Date.now()}`,
+      position,
+      type: equipmentId,
+      contents: [],
+      chemicalObjects: [],
+      totalVolume: 0
+    };
+    setPlacedEquipment((prev) => [...prev, newEquipment]);
+    
+    scoring.award(10, `Placed ${equipmentId}`);
+    
+    toast({
+      title: "Equipment Placed",
+      description: `${equipmentId} has been placed on the workbench.`,
+    });
+  };
+
+  const handleChemicalAdd = (equipmentId: string, chemical: any, volume: number) => {
+    if (!isExperimentStarted) {
+      toast({
+        title: "Experiment Not Started",
+        description: "Click 'Start' in Lab Controls to begin experimenting.",
+        variant: "destructive",
+      });
+      return;
+    }
 
       const vol = Number(volume || 0);
       setPlacedEquipment((prev) =>
