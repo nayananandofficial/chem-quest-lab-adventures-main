@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, Grid } from "@react-three/drei";
-import { EnhancedSidePanel } from "@/components/EnhancedSidePanel";
 import { EnhancedLabEquipment } from "@/components/EnhancedLabEquipment";
 import { EquipmentRack } from "@/components/EquipmentRack";
 import { EnhancedLabTable } from "@/components/EnhancedLabTable";
