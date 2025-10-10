@@ -359,10 +359,11 @@ export const RealisticBeaker: React.FC<AdvancedEquipmentProps> = ({
   const availableChemicals = [
     { name: "Hydrochloric Acid", formula: "HCl", color: "#F5F5DC" },
     { name: "Sodium Hydroxide", formula: "NaOH", color: "#F8F8FF" },
-    { name: "Copper Sulfate", formula: "CuSO4", color: "#4682B4" },
+    { name: "Copper Sulfate", formula: "CuSO4", color: "#0000FF" },
     { name: "Sulfuric Acid", formula: "H2SO4", color: "#FFFAF0" },
     { name: "Potassium Permanganate", formula: "KMnO4", color: "#8B008B" },
     { name: "Iron Oxide", formula: "Fe2O3", color: "#CD853F" },
+    { name: "Sodium Chloride", formula: "NaCl", color: "#FFFFFF" },
   ];
 
   const handleChemicalAdd = (chemical: any, volume: number) => {

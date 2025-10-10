@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, Grid } from "@react-three/drei";
 import { EnhancedLabEquipment } from "@/components/EnhancedLabEquipment";
@@ -16,7 +16,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Beaker, FlaskConical, Award, Zap, Star, Settings, ChevronDown, Play, RotateCcw, Save, Layers } from "lucide-react";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useExperimentProtection } from "@/hooks/useExperimentProtection";
+import { 
+  Beaker, 
+  FlaskConical, 
+  Award, 
+  Zap, 
+  Star, 
+  Settings, 
+  ChevronDown, 
+  Play, 
+  RotateCcw, 
+  Save, 
+  Layers,
+  AlertTriangle,
+  Clock,
+  TestTube
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,10 +50,16 @@ interface PlacedEquipment {
   id: string;
   position: [number, number, number];
   type: string;
-  contents: string[]; // Keep for backward compatibility
-  // New properties for volume system:
+  contents: string[];
   chemicalObjects: Array<{name: string; volume: number; color: string}>;
   totalVolume: number;
+}
+
+interface ExperimentState {
+  status: 'idle' | 'active' | 'paused' | 'completed';
+  startTime?: Date;
+  currentSession?: string;
+  autoSaveEnabled: boolean;
 }
 
 const ScienceLab = () => {
@@ -49,29 +72,86 @@ const ScienceLab = () => {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
+  // Experiment state management
+  const [experimentState, setExperimentState] = useState<ExperimentState>({
+    status: 'idle',
+    autoSaveEnabled: true
+  });
+  const [isExperimentStarted, setIsExperimentStarted] = useState(false);
+
+  // Confirmation dialogs state
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
   // Reaction engine and scoring
   const reactionEngine = useChemicalReactionEngine();
   const scoring = useExperimentScoring();
 
-  const resetLab = () => {
+  // Browser protection hook
+  useExperimentProtection({
+    isExperimentActive: isExperimentStarted,
+    onBeforeUnload: () => {
+      // Optional: trigger auto-save before leaving
+      if (placedEquipment.length > 0 || reactions.length > 0) {
+        saveExperiment(true);
+      }
+    }
+  });
+
+  // Auto-save functionality
+  useEffect(() => {
+    if (!isExperimentStarted || !experimentState.autoSaveEnabled || !user) return;
+
+    const autoSaveInterval = setInterval(() => {
+      if (placedEquipment.length > 0 || reactions.length > 0) {
+        saveExperiment(true);
+      }
+    }, 60000);
+
+    return () => clearInterval(autoSaveInterval);
+  }, [isExperimentStarted, placedEquipment, reactions, experimentState.autoSaveEnabled, user]);
+
+  const startExperiment = () => {
+    const sessionId = `exp-${Date.now()}`;
+    
+    setExperimentState({
+      status: 'active',
+      startTime: new Date(),
+      currentSession: sessionId,
+      autoSaveEnabled: true
+    });
+    
+    setIsExperimentStarted(true);
+    scoring.award(10, "Experiment Started");
+    
+    toast({
+      title: "Experiment Started! 🧪",
+      description: "You can now interact with equipment and chemicals.",
+    });
+  };
+
+  const performReset = () => {
     setReactions([]);
     setSelectedEquipment(null);
     setPlacedEquipment([]);
+    setIsExperimentStarted(false);
+    setExperimentState({ status: 'idle', autoSaveEnabled: true });
     scoring.reset();
+    
     toast({
       title: "Lab Reset",
-      description: "All equipment and reactions have been cleared.",
+      description: "All equipment cleared. Click Start to begin a new experiment.",
     });
   };
 
-  const startExperiment = () => {
-    toast({
-      title: "Experiment Started",
-      description: "Use the equipment rack to add tools.",
-    });
+  const resetLab = () => {
+    if (experimentState.status === 'active') {
+      setShowResetConfirm(true);
+      return;
+    }
+    performReset();
   };
 
-  const saveExperiment = async () => {
+  const saveExperiment = async (isAutoSave = false) => {
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -80,94 +160,138 @@ const ScienceLab = () => {
       });
       return;
     }
+
+    if (experimentState.status === 'idle') {
+      toast({
+        title: "No Active Experiment",
+        description: "Start an experiment first to save progress.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const experimentData = {
         user_id: user.id,
-        experiment_name: `Lab Session ${new Date().toLocaleDateString()}`,
-        chemicals_used: reactions.map((r) => r.type || "unknown"),
+        experiment_name: `Lab Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+        chemicals_used: placedEquipment.flatMap(eq => eq.contents),
         results: {
           reactions: reactions.length,
-          equipment_used: selectedEquipment,
+          equipment_used: placedEquipment.length,
+          chemicals_mixed: placedEquipment.reduce((total, eq) => total + eq.chemicalObjects.length, 0),
+          session_duration: experimentState.startTime ? 
+            Math.round((Date.now() - experimentState.startTime.getTime()) / 1000) : 0,
+          equipment_details: placedEquipment.map(eq => ({
+            type: eq.type,
+            chemicals: eq.chemicalObjects,
+            totalVolume: eq.totalVolume
+          })),
+          reactions_performed: reactions.map(r => ({
+            name: r.name,
+            type: r.type,
+            timestamp: r.startedAt
+          })),
           timestamp: new Date().toISOString(),
         },
-        score: reactions.length * 10,
+        score: scoring.score,
       };
 
-      const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/add-experiment`, {experimentData:experimentData}
+      const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/api/add-experiment`, 
+        { experimentData }
       );
-      if (response.status !== 200) {
+
+      if (response.status === 200) {
+        setExperimentState(prev => ({
+          ...prev,
+          status: 'active'
+        }));
+
         toast({
-          title: "Save Failed",
-          description: response.data.message || "Failed to save experiment.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Experiment Saved!",
-          description: "Your lab session has been recorded successfully.",
+          title: isAutoSave ? "Auto-saved" : "Experiment Saved! 💾",
+          description: `Progress saved with ${scoring.score} points.`,
         });
       }
     } catch (error) {
       toast({
         title: "Save Failed",
-        description: "Unexpected error while saving.",
+        description: "Could not save experiment. Please try again.",
         variant: "destructive",
       });
     }
   };
 
+  // ... (keep all your existing handler functions - handleVolumeChange, handleEquipmentPlace, etc.)
+  
   const handleVolumeChange = (equipmentId: string, newTotalVolume: number) => {
-  setPlacedEquipment((prev) =>
-    prev.map((equipment) => {
-      if (equipment.id === equipmentId) {
-        // If there are chemicalObjects present, scale their volumes proportionally
-        const existing = Array.isArray(equipment.chemicalObjects) ? equipment.chemicalObjects : [];
-        if (existing.length > 0) {
-          const currentTotal = existing.reduce((s, c) => s + Number(c.volume || 0), 0);
-          if (currentTotal <= 0) {
-            // nothing to scale, just set totalVolume
+    if (!isExperimentStarted) {
+      toast({
+        title: "Experiment Not Started",
+        description: "Click 'Start' in Lab Controls to begin experimenting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPlacedEquipment((prev) =>
+      prev.map((equipment) => {
+        if (equipment.id === equipmentId) {
+          const existing = Array.isArray(equipment.chemicalObjects) ? equipment.chemicalObjects : [];
+          if (existing.length > 0) {
+            const currentTotal = existing.reduce((s, c) => s + Number(c.volume || 0), 0);
+            if (currentTotal <= 0) {
+              return {
+                ...equipment,
+                totalVolume: Number(newTotalVolume || 0),
+              };
+            }
+            const scale = Number(newTotalVolume) / currentTotal;
+            const scaled = existing.map((c) => ({ ...c, volume: Number(c.volume || 0) * scale }));
+            const recalculated = scaled.reduce((s, c) => s + Number(c.volume || 0), 0);
             return {
               ...equipment,
-              totalVolume: Number(newTotalVolume || 0),
+              chemicalObjects: scaled,
+              totalVolume: recalculated,
             };
           }
-          const scale = Number(newTotalVolume) / currentTotal;
-          const scaled = existing.map((c) => ({ ...c, volume: Number(c.volume || 0) * scale }));
-          const recalculated = scaled.reduce((s, c) => s + Number(c.volume || 0), 0);
+
           return {
             ...equipment,
-            chemicalObjects: scaled,
-            totalVolume: recalculated,
+            totalVolume: Number(newTotalVolume || 0),
           };
         }
+        return equipment;
+      })
+    );
 
-        return {
-          ...equipment,
-          totalVolume: Number(newTotalVolume || 0),
-        };
-      }
-      return equipment;
-    })
-  );
-
-  toast({
-    title: "Volume Adjusted",
-    description: `Volume set to ${newTotalVolume}ml`,
-  });
-};
-
-
+    toast({
+      title: "Volume Adjusted",
+      description: `Volume set to ${newTotalVolume}ml`,
+    });
+  };
 
   const handleEquipmentPlace = (equipmentId: string, position: [number, number, number]) => {
+    if (!isExperimentStarted) {
+      toast({
+        title: "Experiment Not Started", 
+        description: "Click 'Start' to place equipment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newEquipment: PlacedEquipment = {
       id: `${equipmentId}-${Date.now()}`,
       position,
       type: equipmentId,
-      contents: [], // Keep old format for compatibility
-      chemicalObjects: [], // New format for volume system
+      contents: [],
+      chemicalObjects: [],
       totalVolume: 0
     };
     setPlacedEquipment((prev) => [...prev, newEquipment]);
+    
+    scoring.award(10, `Placed ${equipmentId}`);
+    
     toast({
       title: "Equipment Placed",
       description: `${equipmentId} has been placed on the workbench.`,
@@ -175,94 +299,118 @@ const ScienceLab = () => {
   };
 
   const handleChemicalAdd = (equipmentId: string, chemical: any, volume: number) => {
-  const vol = Number(volume || 0);
-  setPlacedEquipment((prev) =>
-    prev.map((equipment) => {
-      if (equipment.id === equipmentId) {
-        const existingContents = Array.isArray(equipment.contents) ? equipment.contents : [];
-        const existingChemObjects = Array.isArray(equipment.chemicalObjects) ? equipment.chemicalObjects : [];
+    if (!isExperimentStarted) {
+      toast({
+        title: "Experiment Not Started",
+        description: "Click 'Start' in Lab Controls to begin experimenting.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-        const newContents = [...existingContents, chemical.name];
+    const vol = Number(volume || 0);
+    setPlacedEquipment((prev) =>
+      prev.map((equipment) => {
+        if (equipment.id === equipmentId) {
+          const existingContents = Array.isArray(equipment.contents) ? equipment.contents : [];
+          const existingChemObjects = Array.isArray(equipment.chemicalObjects) ? equipment.chemicalObjects : [];
 
-        const newChemicalObject = {
-          name: chemical.name,
-          volume: vol,
-          color: chemical.color || chemical.colorHex || "#87CEEB",
-        };
+          const newContents = [...existingContents, chemical.name];
 
-        const newChemicalObjects = [...existingChemObjects, newChemicalObject];
+          const newChemicalObject = {
+            name: chemical.name,
+            volume: vol,
+            color: chemical.color || chemical.colorHex || "#87CEEB",
+          };
 
-        const newTotalVolume = newChemicalObjects.reduce((sum, chem) => sum + Number(chem.volume || 0), 0);
+          const newChemicalObjects = [...existingChemObjects, newChemicalObject];
+          const newTotalVolume = newChemicalObjects.reduce((sum, chem) => sum + Number(chem.volume || 0), 0);
 
-        const updated = {
-          ...equipment,
-          contents: newContents,
-          chemicalObjects: newChemicalObjects,
-          totalVolume: newTotalVolume,
-        };
-        // After updating placedEquipment, run reaction detection and scoring
-        try {
-          const names = newChemicalObjects.map(c => c.name);
-          const reaction = reactionEngine.perform(names, 20);
-          if (reaction) {
-            const reactionInstance = {
-              ...reaction,
-              id: `${reaction.id}-${Date.now()}`,
-              equipmentId: equipment.id,
-              startedAt: Date.now(),
-            };
-            setReactions(prev => [...prev, reactionInstance]);
-            // Award scoring: chemical addition + successful reaction
-            scoring.award(15, `Added ${chemical.name}`);
-            scoring.award(50, `Reaction: ${reaction.name}`);
-            scoring.awardBadge(reaction.type || 'reaction');
-          } else {
-            scoring.award(15, `Added ${chemical.name}`);
+          const updated = {
+            ...equipment,
+            contents: newContents,
+            chemicalObjects: newChemicalObjects,
+            totalVolume: newTotalVolume,
+          };
+
+          try {
+            const names = newChemicalObjects.map(c => c.name);
+            const reaction = reactionEngine.perform(names, 20);
+            if (reaction) {
+              const reactionInstance = {
+                ...reaction,
+                id: `${reaction.id}-${Date.now()}`,
+                equipmentId: equipment.id,
+                startedAt: Date.now(),
+              };
+              setReactions(prev => [...prev, reactionInstance]);
+              scoring.award(15, `Added ${chemical.name}`);
+              scoring.award(50, `Reaction: ${reaction.name}`);
+              scoring.awardBadge(reaction.type || 'reaction');
+            } else {
+              scoring.award(15, `Added ${chemical.name}`);
+            }
+          } catch (e) {
+            console.error('Reaction engine error', e);
           }
-        } catch (e) {
-          console.error('Reaction engine error', e);
+
+          return updated;
         }
+        return equipment;
+      })
+    );
 
-        return updated;
-      }
-      return equipment;
-    })
-  );
-
-  toast({
-    title: "Chemical Added",
-    description: `${chemical.name} (${vol}ml) added to equipment.`,
-  });
-};
-
-// (removed stray duplicate rendering block)
+    toast({
+      title: "Chemical Added",
+      description: `${chemical.name} (${vol}ml) added to equipment.`,
+    });
+  };
 
   const handleChemicalSelect = (chemical: any) => {
-  console.log('Chemical selected:', chemical);
-  console.log('Selected equipment:', selectedEquipment);
-  
-  if (selectedEquipment) {
-    // FIXED: Find the equipment and use its onChemicalAdd handler
-    const equipment = placedEquipment.find(eq => eq.id === selectedEquipment);
-    if (equipment) {
-      // Call handleChemicalAdd with proper parameters
-      handleChemicalAdd(selectedEquipment, chemical, 5); // 5ml default
+    if (!isExperimentStarted) {
+      toast({
+        title: "Experiment Not Started",
+        description: "Click 'Start' in Lab Controls to begin experimenting.",
+        variant: "destructive",
+      });
+      return;
     }
-  } else {
-    toast({
-      title: "No Equipment Selected",
-      description: "Please select equipment first.",
-      variant: "destructive",
-    });
-  }
-};
 
-
+    console.log('Chemical selected:', chemical);
+    console.log('Selected equipment:', selectedEquipment);
+    
+    if (selectedEquipment) {
+      const equipment = placedEquipment.find(eq => eq.id === selectedEquipment);
+      if (equipment) {
+        handleChemicalAdd(selectedEquipment, chemical, 5);
+      }
+    } else {
+      toast({
+        title: "No Equipment Selected",
+        description: "Please select equipment first.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getEquipmentContents = (equipmentId: string): string[] => {
     const equipment = placedEquipment.find((eq) => eq.id === equipmentId);
     return equipment?.contents || [];
   };
+
+  // Calculate experiment details for confirmation dialog
+  const experimentDetails = [
+    { label: "Equipment placed", value: placedEquipment.length },
+    { label: "Chemicals added", value: placedEquipment.reduce((total, eq) => total + eq.chemicalObjects.length, 0) },
+    { label: "Reactions performed", value: reactions.length },
+    { label: "Current score", value: `${scoring.score} points` },
+    { 
+      label: "Session duration", 
+      value: experimentState.startTime 
+        ? `${Math.round((Date.now() - experimentState.startTime.getTime()) / 60000)} min`
+        : "0 min"
+    }
+  ];
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -270,41 +418,61 @@ const ScienceLab = () => {
       <ExperimentScorePanel score={scoring.score} badges={scoring.badges} />
       <SafetyWarnings alerts={reactionEngine.safetyAlerts} onClear={() => reactionEngine.clearSafetyAlerts()} />
       <EducationalTooltips reaction={reactionEngine.activeReactions[reactionEngine.activeReactions.length - 1]} />
+      
       <DragDropProvider>
-        {/* Top Bar */}
+        {/* Your existing header and content */}
         <header className="flex items-center justify-between px-6 py-3 bg-card border-b shadow-sm">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
               <Beaker className="h-6 w-6 text-primary" />
               <div>
                 <h1 className="text-base font-bold">Virtual Chemistry Lab</h1>
-                <p className="text-xs text-muted-foreground">Professional Workspace</p>
+                <p className="text-xs text-muted-foreground">
+                  {isExperimentStarted ? (
+                    <span className="text-green-600 flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      Experiment Active
+                    </span>
+                  ) : (
+                    "Click Start to begin experimenting"
+                  )}
+                </p>
               </div>
             </div>
 
-            {/* Lab Control Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-1 px-3 py-1.5">
+                <Button 
+                  variant={isExperimentStarted ? "default" : "outline"} 
+                  className="flex items-center gap-1 px-3 py-1.5"
+                >
                   <Settings className="w-4 h-4" />
                   Lab Control
                   <ChevronDown className="w-3 h-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={startExperiment}>
-                  <Play className="w-4 h-4 mr-2" /> Start
+                <DropdownMenuItem 
+                  onClick={startExperiment}
+                  disabled={isExperimentStarted}
+                  className={isExperimentStarted ? "opacity-50" : ""}
+                >
+                  <Play className="w-4 h-4 mr-2" /> 
+                  {isExperimentStarted ? "Experiment Active" : "Start"}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={resetLab}>
                   <RotateCcw className="w-4 h-4 mr-2" /> Reset
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={saveExperiment}>
+                <DropdownMenuItem 
+                  onClick={() => saveExperiment(false)}
+                  disabled={!isExperimentStarted}
+                  className={!isExperimentStarted ? "opacity-50" : ""}
+                >
                   <Save className="w-4 h-4 mr-2" /> Save
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Tools Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-1 px-3 py-1.5">
@@ -325,10 +493,8 @@ const ScienceLab = () => {
         </header>
 
         <div className="flex flex-1 min-h-0">
-          {/* Left Panel collapsed / empty */}
           <div className="w-8 flex-shrink-0" />
 
-          {/* 3D Workspace */}
           <div className="flex-1 relative min-w-0">
             <Canvas camera={{ position: [0, 8, 22], fov: 25 }} shadows className="w-full h-full">
               <ambientLight intensity={0.4} />
@@ -337,7 +503,6 @@ const ScienceLab = () => {
               <Environment preset="studio" />
               <EnhancedLabTable onEquipmentPlace={handleEquipmentPlace} placedEquipment={placedEquipment} />
               
-              {/* Enhanced Lab Equipment with Volume System */}
               {placedEquipment.map((equipment) => (
                 <EnhancedLabEquipment
                   key={equipment.id}
@@ -348,8 +513,8 @@ const ScienceLab = () => {
                   position={equipment.position}
                   equipmentType={equipment.type}
                   equipmentId={equipment.id}
-                  equipmentContents={equipment.contents} // Keep for backward compatibility
-                  chemicalObjects={equipment.chemicalObjects} // New volume system
+                  equipmentContents={equipment.contents}
+                  chemicalObjects={equipment.chemicalObjects}
                   totalVolume={equipment.totalVolume}
                   onVolumeChange={(newVolume) => handleVolumeChange(equipment.id, newVolume)}
                   onChemicalAdd={(chemical, volume) => handleChemicalAdd(equipment.id, chemical, volume)}
@@ -360,27 +525,63 @@ const ScienceLab = () => {
             </Canvas>
           </div>
 
-          {/* Right Panel - Tabs */}
           <div className="w-96 bg-card border-l border-border flex flex-col h-full">
-            <Tabs defaultValue="chemicals" className=" flex flex-col h-full">
+            {!isExperimentStarted && (
+              <div className="p-4 bg-muted border-b">
+                <div className="text-sm font-medium text-muted-foreground text-center flex items-center justify-center gap-2">
+                  <Play className="w-4 h-4" />
+                  Click "Start" in Lab Controls to begin
+                </div>
+              </div>
+            )}
+            
+            <Tabs defaultValue="chemicals" className="flex flex-col h-full">
               <TabsList className="grid grid-cols-2">
-                <TabsTrigger value="chemicals">Chemicals</TabsTrigger>
-                <TabsTrigger value="equipment">Equipment</TabsTrigger>
+                <TabsTrigger value="chemicals" disabled={!isExperimentStarted}>
+                  Chemicals
+                </TabsTrigger>
+                <TabsTrigger value="equipment" disabled={!isExperimentStarted}>
+                  Equipment
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="chemicals" className="p-4 flex-1 overflow-y-auto">
-                <EnhancedChemicalLibrary
-                  onChemicalSelect={handleChemicalSelect}
-                  selectedEquipment={selectedEquipment}
-                />
+                <div className={!isExperimentStarted ? "opacity-50 pointer-events-none" : ""}>
+                  <EnhancedChemicalLibrary
+                    onChemicalSelect={handleChemicalSelect}
+                    selectedEquipment={selectedEquipment}
+                  />
+                </div>
               </TabsContent>
 
               <TabsContent value="equipment" className="p-4 flex-1 overflow-y-auto">
-                <EquipmentRack onEquipmentSelect={() => {}} position={[0, 0, 0]} />
+                <div className={!isExperimentStarted ? "opacity-50 pointer-events-none" : ""}>
+                  <EquipmentRack onEquipmentSelect={() => {}} position={[0, 0, 0]} />
+                </div>
               </TabsContent>
             </Tabs>
           </div>
         </div>
+
+        {/* Reset Confirmation Dialog */}
+        <ConfirmationDialog
+          isOpen={showResetConfirm}
+          onClose={() => setShowResetConfirm(false)}
+          onConfirm={performReset}
+          title="Reset Active Experiment?"
+          description="You have an active experiment in progress. Resetting will permanently delete all your progress:"
+          icon={AlertTriangle}
+          iconColor="text-orange-600"
+          confirmText="Reset Anyway"
+          cancelText="Save First"
+          confirmVariant="destructive"
+          details={experimentDetails}
+        >
+          <p className="text-xs text-muted-foreground mt-3 p-3 bg-blue-50 rounded-md border border-blue-200">
+            💡 <strong>Tip:</strong> Consider saving your experiment first to preserve your progress and points.
+          </p>
+        </ConfirmationDialog>
+
       </DragDropProvider>
     </div>
   );
