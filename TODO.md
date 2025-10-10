@@ -1,0 +1,3 @@
+- [x] Modify checkOnboarding function to detect new users by checking if Firestore document exists
+- [x] Add setTimeout delay for setShowTour to ensure DOM readiness
+- [x] Add run={true} prop to Joyride component
