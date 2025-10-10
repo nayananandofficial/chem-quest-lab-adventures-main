@@ -173,7 +173,7 @@ const ScienceLab = () => {
 
     try {
       const experimentData = {
-        user_id: user.id,
+        user_id: user.uid,
         experiment_name: `Lab Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
         chemicals_used: placedEquipment.flatMap(eq => eq.contents),
         results: {
@@ -197,11 +197,13 @@ const ScienceLab = () => {
         score: scoring.score,
       };
 
+      console.log("Saving experiment data:", experimentData);
       const response = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/api/add-experiment`, 
         { experimentData }
       );
-
+      console.log("Save response:", response);
+      
       if (response.status === 200) {
         setExperimentState(prev => ({
           ...prev,
@@ -209,7 +211,7 @@ const ScienceLab = () => {
         }));
 
         toast({
-          title: isAutoSave ? "Auto-saved" : "Experiment Saved! 💾",
+          title: isAutoSave ? "Auto-saved" : "Experiment Saved!",
           description: `Progress saved with ${scoring.score} points.`,
         });
       }
@@ -222,7 +224,6 @@ const ScienceLab = () => {
     }
   };
 
-  // ... (keep all your existing handler functions - handleVolumeChange, handleEquipmentPlace, etc.)
   
   const handleVolumeChange = (equipmentId: string, newTotalVolume: number) => {
     if (!isExperimentStarted) {
@@ -471,21 +472,6 @@ const ScienceLab = () => {
                 >
                   <Save className="w-4 h-4 mr-2" /> Save
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-1 px-3 py-1.5">
-                  <Layers className="w-4 h-4" />
-                  Tools
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem>Results</DropdownMenuItem>
-                <DropdownMenuItem>Education</DropdownMenuItem>
-                <DropdownMenuItem>Equipment</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
